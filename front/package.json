@@ -2,12 +2,10 @@
   "name": "jisedigi-front",
   "version": "0.1.0",
   "scripts": {
-    "start": "NODE_ENV=production webpack-dev-server --hot --config webpack.dev.js",
-    "build": "NODE_ENV=production webpack-cli --config webpack.prod.js",
-    "build-stg": "NODE_ENV=staging webpack-cli --config webpack.stg.js",
-    "nuxt:dev": "NUXT_APP_BASE_URL=/dl/ nuxt dev",
-    "nuxt:build": "nuxt build",
-    "nuxt:preview": "nuxt preview"
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "start": "npm run dev"
   },
   "author": "ndl",
   "dependencies": {
