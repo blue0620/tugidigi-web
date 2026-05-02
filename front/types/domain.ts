@@ -16,6 +16,7 @@ export interface Book {
   volume?: string;
   index?: string[];
   autoTOCindex?: string[];
+  contrastparam?: number;
   publishyear?: number;
   leftopen?: boolean;
   autoTOCflag?: boolean;

@@ -186,12 +186,17 @@ watch(
 <style scoped>
 .book-view {
   background: #fff;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .book-columns {
   display: grid;
-  grid-template-columns: minmax(280px, 25%) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 28rem) minmax(0, 1fr);
   height: calc(100vh - 75px);
+  max-width: 100vw;
+  overflow: hidden;
+  width: 100%;
 }
 
 .meta-column {
@@ -301,6 +306,7 @@ watch(
 
 .viewer-column {
   min-width: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 980px) {
