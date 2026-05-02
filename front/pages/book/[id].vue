@@ -74,7 +74,7 @@ const loadBook = async () => {
   try {
     book.value = await useApiFetch<Book>(`/book/${id.value}`);
   } catch (error) {
-    errorMessage.value = '書誌情報を取得できませんでした。';
+    errorMessage.value = '書誌情報を読み込めませんでした。';
     console.error(error);
   } finally {
     loading.value = false;
@@ -117,7 +117,7 @@ watch(
           <MigrationStatus :status="migration.status" />
         </div>
 
-        <div v-if="loading" class="meta-status muted">Loading book metadata...</div>
+        <div v-if="loading" class="meta-status muted">書誌情報を読み込み中...</div>
         <div v-else-if="errorMessage" class="meta-status muted">{{ errorMessage }}</div>
 
         <div class="tab-row">
@@ -151,7 +151,7 @@ watch(
           <div v-else-if="activeTab === 'toc'" class="tab-content">
             <button class="button is-secondary toc-toggle" type="button" @click="isMetadata = !isMetadata">目次を切り替える</button>
             <p class="muted">
-              {{ isMetadata ? 'デジタルコレクションの目次です' : '自動生成された目次です(実験中)' }}
+              {{ isMetadata ? 'デジタルコレクションの目次です' : '自動解析された目次です（試験中）' }}
             </p>
             <table v-if="isMetadata ? index : autoTOCindex" class="toc-table">
               <tbody>
@@ -168,7 +168,7 @@ watch(
                 </tr>
               </tbody>
             </table>
-            <p v-else class="muted">{{ isMetadata ? '目次無し' : '自動生成目次無し' }}</p>
+            <p v-else class="muted">{{ isMetadata ? '目次はありません。' : '自動解析目次はありません。' }}</p>
           </div>
 
           <BookPageSearch v-else-if="activeTab === 'text' && book" :book="book" :keywords="keywords" />
@@ -268,40 +268,41 @@ watch(
 
 .meta-list dd {
   margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.dl-link {
-  border-top: 1px solid #dbe3ed;
-  font-size: 0.9rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
 }
 
 .dl-link a {
   color: #005eb8;
-  font-weight: 700;
+  text-decoration: none;
 }
 
 .toc-toggle {
-  justify-self: start;
+  justify-content: center;
 }
 
 .toc-table {
   border-collapse: collapse;
   width: 100%;
-  word-break: break-all;
 }
 
 .toc-table td {
-  border-top: 1px solid #dbe3ed;
-  padding: 0.55rem 0;
+  border-bottom: 1px solid #e5ebf2;
+  padding: 0.5rem 0;
+  vertical-align: top;
 }
 
 .toc-table .pg {
   text-align: right;
-  white-space: nowrap;
-  width: 5rem;
+  width: 4.5rem;
+}
+
+.toc-table a {
+  color: #005eb8;
+  text-decoration: none;
+}
+
+.muted {
+  color: #6b7280;
+  overflow-wrap: anywhere;
 }
 
 .viewer-column {
@@ -317,7 +318,7 @@ watch(
 
   .tab-panel {
     height: auto;
-    max-height: 60vh;
+    max-height: 45vh;
   }
 }
 </style>

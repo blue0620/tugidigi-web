@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import 'leaflet/dist/leaflet.css';
 import type { Book, Page } from '~/types/domain';
 
@@ -149,15 +149,56 @@ const colors = `0 1 0 0 0
                     0 1 0 0 0
                     0 1 0 0 0
                     0 1 0 1 0`;
+const labels = {
+  directionNone: '\u30da\u30fc\u30b8\u65b9\u5411\uff08\u60c5\u5831\u306a\u3057\uff09',
+  directionEstimated: '\u30da\u30fc\u30b8\u65b9\u5411\uff08\u81ea\u52d5\u63a8\u5b9a\uff09',
+  direction: '\u30da\u30fc\u30b8\u65b9\u5411',
+  openRight: '\u53f3\u958b\u304d',
+  openLeft: '\u5de6\u958b\u304d',
+  copyDone: '\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f',
+  copyFailed: '\u30b3\u30d4\u30fc\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f',
+  copyExtractFailed: '\u6587\u5b57\u3092\u62bd\u51fa\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f',
+  selectTableArea: '\u30c6\u30fc\u30d6\u30eb\u9818\u57df\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044\u3002',
+  extracting: '\u62bd\u51fa\u4e2d...',
+  tableFailed: '\u8868\u62bd\u51fa\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002',
+  manifestFailed: 'IIIF manifest \u3092\u8aad\u307f\u8fbc\u3081\u307e\u305b\u3093\u3067\u3057\u305f\u3002',
+  loadingManifest: 'IIIF manifest \u3092\u8aad\u307f\u8fbc\u307f\u4e2d...',
+  zoomOut: '\u7e2e\u5c0f',
+  fitBounds: '\u8868\u793a\u9818\u57df\u306b\u5408\u308f\u305b\u308b',
+  zoomIn: '\u62e1\u5927',
+  fullscreen: '\u5168\u753b\u9762\u8868\u793a',
+  exitFullscreen: '\u5168\u753b\u9762\u8868\u793a\u3092\u9589\u3058\u308b',
+  textDisplay: '\u30c6\u30ad\u30b9\u30c8\u8868\u793a',
+  textCopy: '\u30c6\u30ad\u30b9\u30c8\u30b3\u30d4\u30fc',
+  tableExtract: '\u8868\u62bd\u51fa',
+  rubySize: '\u30eb\u30d3\u30b5\u30a4\u30ba',
+  previous: '\u524d\u3078',
+  next: '\u6b21\u3078',
+  swapDirection: '\u5165\u308c\u66ff\u3048\u308b',
+  divideOn: '\u5206\u5272\u8868\u793a',
+  divideOff: '\u5206\u5272\u89e3\u9664',
+  currentPageImage: '\u3053\u306e\u30da\u30fc\u30b8\u306e\u753b\u50cf',
+  readability: '\u8aad\u307f\u3084\u3059\u304f\u3059\u308b',
+  adjust: '\u8abf\u6574\u3059\u308b',
+  fulltextDownload: '\u3053\u306e\u8cc7\u6599\u306e\u5168\u6587\u30c6\u30ad\u30b9\u30c8\u30c7\u30fc\u30bf',
+  imageDownload: '\u3053\u306e\u8cc7\u6599\u306e\u753b\u50cf\u30c7\u30fc\u30bf',
+  imageDownloadTitle: '\u753b\u50cf\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9',
+  imageDownloadDescription: '\u3053\u306e\u30da\u30fc\u30b8\u306e\u8868\u793a\u4e2d\u753b\u50cf\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u3057\u307e\u3059\u3002',
+  download: '\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9',
+  close: '\u9589\u3058\u308b',
+  copy: '\u30b3\u30d4\u30fc',
+  rangeSelect: '\u7bc4\u56f2\u9078\u629e',
+  insertSpace: '\u6587\u5b57\u9593\u306b\u7a7a\u767d\u3092\u5165\u308c\u308b',
+  ignoreRuby: '\u30eb\u30d3\u3092\u7121\u8996\u3059\u308b',
+  spreadSort: '\u898b\u958b\u304d\u3067\u4e26\u3079\u66ff\u3048\u308b',
+} as const;
 
 const directionLabel = computed(() => {
-  if (directionState.value === 'none') return 'ページ方向（情報なし）';
-  if (directionState.value === 'estimated') return 'ページ方向（自動推定）';
-  return 'ページ方向';
+  if (directionState.value === 'none') return labels.directionNone;
+  if (directionState.value === 'estimated') return labels.directionEstimated;
+  return labels.direction;
 });
-
-const directionValue = computed(() => (leftOpen.value ? '右開き' : '左開き'));
-
+const directionValue = computed(() => (leftOpen.value ? labels.openRight : labels.openLeft));
 const downloadLink = computed(() => {
   if (!props.book?.id) return '';
   return `${runtimeConfig.app.baseURL}api/book/download/${props.book.id}?page=${currentDownloadPage.value}`;
@@ -502,14 +543,14 @@ const selectedTextHtml = computed(() => {
 });
 
 const copySelectedText = async (targetText: string) => {
+  const suffix = `${targetText.slice(0, 12)}${targetText.length > 12 ? '...' : ''}`;
   try {
     await navigator.clipboard.writeText(targetText);
-    showNotification(`コピーしました: ${targetText.slice(0, 12)}${targetText.length > 12 ? '...' : ''}`);
+    showNotification(`${labels.copyDone}: ${suffix}`);
   } catch {
-    showNotification(`コピーできませんでした: ${targetText.slice(0, 12)}${targetText.length > 12 ? '...' : ''}`);
+    showNotification(`${labels.copyFailed}: ${suffix}`);
   }
 };
-
 const drawRectangleOnTextArea = async (
   coordjson: CoordjsonContent[],
   options: { clickToCopy?: boolean; color?: string } = {},
@@ -578,9 +619,8 @@ const displaySelectedTextModal = () => {
     return;
   }
   if (selectedTextPlain.value !== '') isCopyModalActive.value = true;
-  else showNotification('文字を抽出できませんでした');
+  else showNotification(labels.copyExtractFailed);
 };
-
 const initializeCopyMode = async () => {
   if (!currentPageId.value || div.value || !map) return;
   copyMode.value = true;
@@ -615,7 +655,7 @@ const initializeTableMode = async () => {
   if (!currentPageId.value || div.value || !map) return;
   copyMode.value = true;
   tableMode.value = true;
-  tableHtml.value = 'テーブル領域を選択してください。';
+  tableHtml.value = labels.selectTableArea;
   exitTextDisplayMode();
   fitBounds();
 
@@ -713,7 +753,7 @@ const tableRecFunc = async () => {
   if (!props.book?.id || !currentPageId.value) return;
 
   tableRecLoading.value = true;
-  tableHtml.value = '抽出中...';
+  tableHtml.value = labels.extracting;
 
   try {
     const response = await fetch(runtimeConfig.public.tableRecEndpoint, {
@@ -748,8 +788,8 @@ const tableRecFunc = async () => {
     window.URL.revokeObjectURL(link.href);
   } catch (error) {
     console.error(error);
-    tableHtml.value = '表抽出に失敗しました。';
-    showNotification('表抽出に失敗しました');
+    tableHtml.value = labels.tableFailed;
+    showNotification(labels.tableFailed);
   } finally {
     tableRecLoading.value = false;
   }
@@ -891,7 +931,7 @@ const loadManifest = async () => {
     applyPage(props.page || 1);
   } catch (error) {
     manifest.value = null;
-    errorMessage.value = 'IIIF manifest を読み込めませんでした。';
+    errorMessage.value = labels.manifestFailed;
     console.error(error);
   } finally {
     loading.value = false;
@@ -957,36 +997,33 @@ onBeforeUnmount(() => {
       <button class="button is-small leftbutton" type="button" :disabled="!totalPage" @click="handleLeftButton">
         <span class="mdi mdi-chevron-double-left" aria-hidden="true"></span>
       </button>
-
       <div class="viewer-contrast" :class="{ blackwhite: bwflag }">
         <div ref="leafletHost" class="viewer"></div>
-        <div v-if="loading" class="viewer-overlay-message">IIIF manifest を読み込み中...</div>
+        <div v-if="loading" class="viewer-overlay-message">{{ labels.loadingManifest }}</div>
         <div v-else-if="errorMessage" class="viewer-overlay-message">{{ errorMessage }}</div>
         <div v-if="notificationMessage" class="viewer-toast">{{ notificationMessage }}</div>
       </div>
-
       <button class="button is-small rightbutton" type="button" :disabled="!totalPage" @click="handleRightButton">
         <span class="mdi mdi-chevron-double-right" aria-hidden="true"></span>
       </button>
-
       <div class="iiif-control-zoom buttons has-addons">
-        <button class="button is-large icon-button" type="button" title="縮小" @click="map?.zoomOut()">
+        <button class="button is-large icon-button" type="button" :title="labels.zoomOut" @click="map?.zoomOut()">
           <span class="mdi mdi-magnify-minus" aria-hidden="true"></span>
         </button>
-        <button class="button is-large icon-button" type="button" title="表示領域に合わせる" @click="fitBounds()">
+        <button class="button is-large icon-button" type="button" :title="labels.fitBounds" @click="fitBounds()">
           <span class="mdi mdi-arrow-collapse-all" aria-hidden="true"></span>
         </button>
-        <button class="button is-large icon-button" type="button" title="拡大" @click="map?.zoomIn()">
+        <button class="button is-large icon-button" type="button" :title="labels.zoomIn" @click="map?.zoomIn()">
           <span class="mdi mdi-magnify-plus" aria-hidden="true"></span>
         </button>
-        <button class="button is-large icon-button" type="button" :title="full ? '全画面表示を終了' : '全画面表示'" @click="changeFull()">
+        <button class="button is-large icon-button" type="button" :title="full ? labels.exitFullscreen : labels.fullscreen" @click="changeFull()">
           <span :class="['mdi', full ? 'mdi-fullscreen-exit' : 'mdi-fullscreen']" aria-hidden="true"></span>
         </button>
         <button
           v-show="!div"
           class="button is-large icon-button"
           type="button"
-          title="テキスト表示"
+          :title="labels.textDisplay"
           :class="{ 'is-active': textDisplay }"
           @click="changeTextDisplayMode()"
         >
@@ -996,7 +1033,7 @@ onBeforeUnmount(() => {
           v-show="!div"
           class="button is-large icon-button"
           type="button"
-          title="テキストコピー"
+          :title="labels.textCopy"
           :class="{ 'is-active': copyMode && !tableMode }"
           @click="changeCopyMode()"
         >
@@ -1006,88 +1043,81 @@ onBeforeUnmount(() => {
           v-show="!div"
           class="button is-large icon-button"
           type="button"
-          title="表抽出"
+          :title="labels.tableExtract"
           :class="{ 'is-active': copyMode && tableMode }"
           @click="changeTableMode()"
         >
           <span class="mdi mdi-table" aria-hidden="true"></span>
         </button>
       </div>
-
       <div v-show="shouldIgnoreRuby && copyMode && !tableMode" class="iiif-control-right-bottom">
         <label class="ruby-size-panel">
-          <span>ルビサイズ</span>
+          <span>{{ labels.rubySize }}</span>
           <input v-model="rubySize" type="range" min="0" max="1000" step="10" />
         </label>
       </div>
     </div>
-
     <div class="iiif-control-group">
-      <div class="iiif-control-page" v-if="totalPage">
+      <div v-if="totalPage" class="iiif-control-page">
         <div v-if="leftOpen" class="page-control-row">
           <button class="button is-small iiif-next" type="button" :disabled="currentPage <= 1" @click="previous">
             <span class="mdi mdi-chevron-left" aria-hidden="true"></span>
-            <span class="button-label">前へ</span>
+            <span class="button-label">{{ labels.previous }}</span>
           </button>
           <input v-model="inputPageModel" class="input is-small iiif-inputpage" type="text" @blur="commitInputPage" @input="queueInputCommit" />
           <span class="iiif-total button is-small is-static">/{{ totalPage }}</span>
           <button class="button is-small iiif-prev" type="button" :disabled="currentPage >= totalPage" @click="next">
-            <span class="button-label">次へ</span>
+            <span class="button-label">{{ labels.next }}</span>
             <span class="mdi mdi-chevron-right" aria-hidden="true"></span>
           </button>
         </div>
         <div v-else class="page-control-row">
           <button class="button is-small iiif-prev" type="button" :disabled="currentPage >= totalPage" @click="next">
             <span class="mdi mdi-chevron-left" aria-hidden="true"></span>
-            <span class="button-label">次へ</span>
+            <span class="button-label">{{ labels.next }}</span>
           </button>
           <input v-model="inputPageModel" class="input is-small iiif-inputpage" type="text" @blur="commitInputPage" @input="queueInputCommit" />
           <span class="iiif-total button is-small is-static">/{{ totalPage }}</span>
           <button class="button is-small iiif-next" type="button" :disabled="currentPage <= 1" @click="previous">
-            <span class="button-label">前へ</span>
+            <span class="button-label">{{ labels.previous }}</span>
             <span class="mdi mdi-chevron-right" aria-hidden="true"></span>
           </button>
         </div>
       </div>
-
       <div class="direction-group">
         <span>{{ directionLabel }}</span>
         <span>{{ directionValue }}</span>
-        <button class="button is-small" type="button" @click="changeDirection">入れ替える</button>
+        <button class="button is-small" type="button" @click="changeDirection">{{ labels.swapDirection }}</button>
       </div>
-
       <div class="iiif-control-divide buttons has-addons">
         <button class="button is-small" type="button" @click="changeDiv">
           <span :class="['mdi', div ? 'mdi-locker' : 'mdi-locker-multiple']" aria-hidden="true"></span>
-          <span class="button-label">{{ div ? '分割解除' : '分割表示' }}</span>
+          <span class="button-label">{{ div ? labels.divideOff : labels.divideOn }}</span>
         </button>
       </div>
-
       <div class="iiif-control-download buttons has-addons">
         <button class="button is-small" type="button" :disabled="!downloadLink" @click="isDownloadModalActive = true">
           <span class="mdi mdi-download" aria-hidden="true"></span>
-          <span class="button-label">このページの画像</span>
+          <span class="button-label">{{ labels.currentPageImage }}</span>
         </button>
       </div>
-
       <nav class="readability-panel">
         <label class="checkbox readability-toggle" @click="changethparam()">
           <input v-model="bwflag" type="checkbox" />
-          <span>読みやすくする</span>
+          <span>{{ labels.readability }}</span>
         </label>
-        <button class="button is-small" type="button" @click="showTh()">調整する</button>
+        <button class="button is-small" type="button" @click="showTh()">{{ labels.adjust }}</button>
         <input v-if="showThParam" v-model="th" class="threshold-slider" type="range" min="0" max="255" step="1" />
       </nav>
-
       <div class="book-download-group">
         <a v-if="fulltextLink" class="button is-small" :href="fulltextLink">
           <span class="mdi mdi-download" aria-hidden="true"></span>
-          <span class="button-label">この資料の全文テキストデータ</span>
+          <span class="button-label">{{ labels.fulltextDownload }}</span>
         </a>
         <details class="image-downloads">
           <summary class="button is-small">
             <span class="mdi mdi-download" aria-hidden="true"></span>
-            <span class="button-label">この資料の画像データ</span>
+            <span class="button-label">{{ labels.imageDownload }}</span>
           </summary>
           <div class="image-downloads-menu">
             <a
@@ -1103,7 +1133,6 @@ onBeforeUnmount(() => {
           </div>
         </details>
       </div>
-
       <svg class="svg-filter-defs" xmlns="http://www.w3.org/2000/svg">
         <filter id="svgBlur">
           <feComponentTransfer>
@@ -1115,41 +1144,39 @@ onBeforeUnmount(() => {
         </filter>
       </svg>
     </div>
-
     <div v-if="isDownloadModalActive" class="modal-backdrop" @click.self="isDownloadModalActive = false">
       <div class="modal-card">
-        <h3>画像ダウンロード</h3>
-        <p>このページの白黒化画像をダウンロードします。</p>
+        <h3>{{ labels.imageDownloadTitle }}</h3>
+        <p>{{ labels.imageDownloadDescription }}</p>
         <div class="modal-actions">
-          <a class="button is-small" :href="downloadLink">開始</a>
-          <button class="button is-small" type="button" @click="isDownloadModalActive = false">閉じる</button>
+          <a class="button is-small" :href="downloadLink">{{ labels.download }}</a>
+          <button class="button is-small" type="button" @click="isDownloadModalActive = false">{{ labels.close }}</button>
         </div>
       </div>
     </div>
-
     <div v-if="isCopyModalActive" class="modal-backdrop" @click.self="exitCopyMode()">
       <div class="modal-card copy-modal">
         <div v-if="tableMode" class="copy-content" v-html="tableHtml"></div>
         <div v-else class="copy-content" v-html="selectedTextHtml"></div>
         <div class="modal-actions">
-          <button v-if="!tableMode" class="button is-small" type="button" @click="copySelectedText(selectedTextPlain)">コピー</button>
-          <button class="button is-small" type="button" @click="initializeSelectMode()">範囲選択</button>
+          <button v-if="!tableMode" class="button is-small" type="button" @click="copySelectedText(selectedTextPlain)">{{ labels.copy }}</button>
+          <button class="button is-small" type="button" @click="initializeSelectMode()">{{ labels.rangeSelect }}</button>
           <select v-if="tableMode && selectAreaFlag" v-model="tableFormat" class="input is-small table-format">
             <option value="HTML">HTML</option>
             <option value="TSV">TSV</option>
           </select>
           <button v-if="tableMode && selectAreaFlag" class="button is-small" type="button" :disabled="tableRecLoading" @click="tableRecFunc()">
-            {{ tableRecLoading ? '抽出中...' : 'テーブル抽出' }}
+            {{ tableRecLoading ? labels.extracting : labels.tableExtract }}
           </button>
-          <button class="button is-small" type="button" @click="exitCopyMode()">閉じる</button>
+          <button class="button is-small" type="button" @click="exitCopyMode()">{{ labels.close }}</button>
         </div>
         <div v-if="!tableMode" class="copy-options">
-          <label><input v-model="shouldInsertSpace" type="checkbox" /> 文字間に空白を入れる</label>
-          <label><input v-model="shouldIgnoreRuby" type="checkbox" /> ルビを無視する</label>
-          <label><input v-model="shouldDivideByCenter" type="checkbox" /> 見開きで並べ替える</label>
+          <label><input v-model="shouldInsertSpace" type="checkbox" /> {{ labels.insertSpace }}</label>
+          <label><input v-model="shouldIgnoreRuby" type="checkbox" /> {{ labels.ignoreRuby }}</label>
+          <label><input v-model="shouldDivideByCenter" type="checkbox" /> {{ labels.spreadSort }}</label>
         </div>
         <div v-if="!tableMode && shouldIgnoreRuby" class="ruby-size">
-          <span>ルビサイズ</span>
+          <span>{{ labels.rubySize }}</span>
           <input v-model="rubySize" type="range" min="0" max="1000" step="10" />
         </div>
       </div>
@@ -1547,3 +1574,5 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+
+

@@ -12,19 +12,13 @@ const emit = defineEmits<{
 const localSize = ref(props.size);
 const localSort = ref(props.sort || '');
 
-watch(
-  () => props.size,
-  (value) => {
-    localSize.value = value;
-  },
-);
+watch(() => props.size, (value) => {
+  localSize.value = value;
+});
 
-watch(
-  () => props.sort,
-  (value) => {
-    localSort.value = value || '';
-  },
-);
+watch(() => props.sort, (value) => {
+  localSort.value = value || '';
+});
 
 const apply = () => {
   emit('update', {
@@ -36,16 +30,17 @@ const apply = () => {
 
 <template>
   <div class="search-controls">
-    <label>
-      表示件数
+    <label class="control-label">
+      <span>表示件数</span>
       <select v-model.number="localSize" class="select" @change="apply">
         <option :value="10">10</option>
         <option :value="20">20</option>
         <option :value="50">50</option>
       </select>
     </label>
-    <label v-if="showSort">
-      ソート
+
+    <label v-if="showSort" class="control-label">
+      <span>ソート</span>
       <select v-model="localSort" class="select" @change="apply">
         <option value="">一致度順</option>
         <option value="publishyear:asc">出版年 昇順</option>
@@ -64,10 +59,11 @@ const apply = () => {
   justify-content: flex-end;
 }
 
-label {
+.control-label {
   color: #53657a;
   display: grid;
-  gap: 0.25rem;
-  min-width: 140px;
+  font-size: 0.88rem;
+  gap: 0.2rem;
+  min-width: 120px;
 }
 </style>
