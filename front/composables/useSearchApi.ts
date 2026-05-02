@@ -64,6 +64,42 @@ export const useSearchApi = () => {
     return useApiFetch<SearchResult<Illustration>>(withQueryString('/illustration/search', params));
   };
 
+  const searchIllustrationsByFeature = (feature: number[]) => {
+    return useApiFetch<SearchResult<Illustration>>('/illustration/searchbyfeature', {
+      method: 'POST',
+      body: feature,
+    });
+  };
+
+  const searchIllustrationsByTextFeature = (feature: number[]) => {
+    return useApiFetch<SearchResult<Illustration>>('/illustration/searchbytxtfeature', {
+      method: 'POST',
+      body: feature,
+    });
+  };
+
+  const getIllustration = (id: string) => {
+    return useApiFetch<Illustration>(`/illustration/${encodeURIComponent(id)}`);
+  };
+
+  const getDefaultIllustrations = () => {
+    return useApiFetch<Illustration[]>('/illustration/default');
+  };
+
+  const getRandomIllustrationsWithFacet = (facetType: 'graphic' | 'picture' | 'imgonly' | 'map') => {
+    const params = new URLSearchParams({ size: '10' });
+    if (facetType === 'graphic') {
+      params.append('f-graphictags.tagname', 'graphic');
+      params.append('f-graphictags.tagname', '-picture');
+    } else if (facetType === 'picture') {
+      params.append('f-graphictags.tagname', 'picture');
+      params.append('f-graphictags.tagname', '-graphic');
+    } else if (facetType === 'map') {
+      params.append('f-graphictags.tagname', 'graphic_map');
+    }
+    return useApiFetch<Illustration[]>(withQueryString('/illustration/randomwithfacet', params));
+  };
+
   const searchPages = (query: RouteQuery, overrides: RouteQuery = {}) => {
     const params = routeQueryToSearchParams(query, overrides);
 
@@ -88,7 +124,12 @@ export const useSearchApi = () => {
     searchMetaBooks,
     searchIllustrations,
     searchBookIllustrations,
+    searchIllustrationsByFeature,
+    searchIllustrationsByTextFeature,
     searchPages,
+    getIllustration,
+    getDefaultIllustrations,
+    getRandomIllustrationsWithFacet,
     getIllustrationsByIds,
     getIllustrationsByBook,
   };

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ndcData } from '~/src/ts/utils/ndcdata';
+
 definePageMeta({ name: 'fulltextsearch' });
 
 const route = useRoute();
@@ -16,12 +18,20 @@ const searchfield = ref(route.query.searchfield === 'contentonly');
 const withoutHighlight = ref(route.query.withouthighlight === 'true');
 const withoutImage = ref(route.query.withoutimg === 'true');
 const isClassic = ref(route.query['fc-isClassic'] === 'true' ? 'true' : route.query['fc-isClassic'] === 'false' ? 'false' : '');
+const ndc = ref(
+  Array.isArray(route.query['f-ndc'])
+    ? route.query['f-ndc'].filter((value): value is string => typeof value === 'string')
+    : typeof route.query['f-ndc'] === 'string'
+      ? [route.query['f-ndc']]
+      : [],
+);
 const filterOpen = ref(
   Boolean(
     route.query['f-title'] ||
     route.query['f-responsibility'] ||
     route.query['r-publishyear'] ||
-    route.query['fc-isClassic'],
+    route.query['fc-isClassic'] ||
+    route.query['f-ndc'],
   ),
 );
 
@@ -33,6 +43,37 @@ const hasQuery = computed(() => (
   Boolean(route.query['f-responsibility']) ||
   Boolean(route.query['r-publishyear'])
 ));
+
+const readDefaultSort = () => {
+  if (!import.meta.client) return '';
+  try {
+    const value = localStorage.getItem('fulltext_default_sort') || '';
+    return ['publishyear:asc', 'publishyear:desc', ''].includes(value) ? value : '';
+  } catch (error) {
+    console.error(error);
+    return '';
+  }
+};
+
+watch(
+  () => route.fullPath,
+  () => {
+    keyword.value = asStringArray(route.query.keyword).join(' ');
+    title.value = String(route.query['f-title'] || '');
+    author.value = String(route.query['f-responsibility'] || '');
+    since.value = String(route.query['r-publishyear'] || '').split(',')[0] || '';
+    until.value = String(route.query['r-publishyear'] || '').split(',')[1] || '';
+    searchfield.value = route.query.searchfield === 'contentonly';
+    withoutHighlight.value = route.query.withouthighlight === 'true';
+    withoutImage.value = route.query.withoutimg === 'true';
+    isClassic.value = route.query['fc-isClassic'] === 'true' ? 'true' : route.query['fc-isClassic'] === 'false' ? 'false' : '';
+    ndc.value = Array.isArray(route.query['f-ndc'])
+      ? route.query['f-ndc'].filter((value): value is string => typeof value === 'string')
+      : typeof route.query['f-ndc'] === 'string'
+        ? [route.query['f-ndc']]
+        : [];
+  },
+);
 
 const search = async () => {
   const keywords = keyword.value.split(/[\s\u3000]+/).filter(Boolean);
@@ -52,6 +93,8 @@ const search = async () => {
       'f-responsibility': author.value,
       'r-publishyear': since.value || until.value ? `${since.value},${until.value}` : '',
       'fc-isClassic': isClassic.value,
+      'f-ndc': ndc.value,
+      sort: String(route.query.sort || readDefaultSort() || ''),
     }),
   });
 };
@@ -123,6 +166,8 @@ const search = async () => {
             </select>
           </label>
         </div>
+
+        <FulltextNdcFilter v-model="ndc" :ndc-data="ndcData" />
 
         <div class="advanced-actions">
           <button class="button" type="submit">絞り込み検索</button>

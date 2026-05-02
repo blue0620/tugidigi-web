@@ -22,6 +22,7 @@ const from = computed(() => Math.max(0, Number(route.query.from || 0) || 0));
 const size = computed(() => Math.max(1, Number(route.query.size || 10) || 10));
 const sort = computed(() => String(route.query.sort || ''));
 const facets = computed(() => result.value?.facets || []);
+const querySignature = computed(() => JSON.stringify(route.query));
 
 const loadIllustrations = async (books: Book[]) => {
   if (props.withoutImage) return;
@@ -80,7 +81,7 @@ const loadNgram = async () => {
 };
 
 watch(
-  () => route.fullPath,
+  () => querySignature.value,
   async () => {
     ngramLoaded.value = false;
     ngramResult.value = null;
@@ -90,18 +91,27 @@ watch(
   { immediate: true },
 );
 
-const updateQuery = (updates: Record<string, string | string[] | number | undefined>) => {
-  router.push({
-    name: 'fulltextsearch',
-    query: normalizeQuery({
+const updateQuery = async (updates: Record<string, string | string[] | number | undefined>) => {
+  const nextQuery = normalizeQuery({
       ...route.query,
       ...updates,
-    }),
+    });
+
+  await router.replace({
+    path: route.path,
+    query: nextQuery,
   });
+
+  if (querySignature.value === JSON.stringify(nextQuery)) {
+    ngramLoaded.value = false;
+    ngramResult.value = null;
+    showNgram.value = false;
+    await reload();
+  }
 };
 
-const updateControls = (value: { size: number; sort?: string }) => {
-  updateQuery({
+const updateControls = async (value: { size: number; sort?: string }) => {
+  await updateQuery({
     from: undefined,
     size: value.size,
     sort: value.sort || undefined,
@@ -113,8 +123,8 @@ const selectedFacetValues = (field: string) => {
   return Array.isArray(raw) ? raw.filter((value): value is string => typeof value === 'string') : typeof raw === 'string' ? [raw] : [];
 };
 
-const updateFacet = (field: string, values: string[] | undefined) => {
-  updateQuery({
+const updateFacet = async (field: string, values: string[] | undefined) => {
+  await updateQuery({
     from: undefined,
     [`fc-${field}`]: values,
   });
@@ -130,8 +140,8 @@ const toggleNgram = async () => {
   if (showNgram.value) await loadNgram();
 };
 
-const openIllustrationSearch = (illustration: Illustration) => {
-  updateQuery({
+const openIllustrationSearch = async (illustration: Illustration) => {
+  await updateQuery({
     keyword: undefined,
     image: illustration.id,
     from: undefined,
@@ -148,14 +158,8 @@ const openIllustrationSearch = (illustration: Illustration) => {
       </button>
       <div v-if="showNgram" class="ngram-panel">
         <p v-if="loadingNgram" class="muted">Ngram を読み込み中...</p>
-        <p v-else-if="!ngramResult?.list?.length" class="muted">Ngram データはありません。</p>
-        <ul v-else class="ngram-list">
-          <li v-for="item in ngramResult.list.slice(0, 20)" :key="item.id">
-            <NuxtLink :to="{ name: 'book', params: { id: item.id }, query: keywords.length ? { keyword: keywords } : undefined }">
-              {{ item.title || item.id }}
-            </NuxtLink>
-          </li>
-        </ul>
+        <p v-else-if="!ngramResult?.facets?.[0]?.counts" class="muted">Ngram データはありません。</p>
+        <NgramFacetViewer v-else :counts="ngramResult.facets[0].counts" />
       </div>
     </div>
 

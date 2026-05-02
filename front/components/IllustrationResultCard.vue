@@ -3,95 +3,103 @@ import type { Illustration } from '~/types/domain';
 
 const props = defineProps<{
   illustration: Illustration;
+  compact?: boolean;
 }>();
+
+const tags = computed(() => (
+  props.illustration.graphictags?.slice().sort((a, b) => (b.confidence || 0) - (a.confidence || 0)).slice(0, 3) || []
+));
 
 const imageUrl = computed(() => {
   if (!props.illustration.pid || !props.illustration.page) return '';
   const page = String(props.illustration.page).padStart(7, '0');
-
   return `https://www.dl.ndl.go.jp/api/iiif/${encodeURIComponent(props.illustration.pid)}/R${page}/full/280,/0/default.jpg`;
 });
 
-const tags = computed(() => props.illustration.graphictags?.map((tag) => tag.tagname).filter(Boolean) || []);
+const fullImageUrl = computed(() => {
+  if (!props.illustration.pid || !props.illustration.page) return '';
+  const page = String(props.illustration.page).padStart(7, '0');
+  return `https://www.dl.ndl.go.jp/api/iiif/${encodeURIComponent(props.illustration.pid)}/R${page}/full/full/0/default.jpg`;
+});
+
+const emit = defineEmits<{
+  search: [illustration: Illustration];
+  searchTag: [payload: { illustration: Illustration; tag: string }];
+}>();
 </script>
 
 <template>
-  <article class="illustration-card">
-    <NuxtLink class="image-link" :to="{ name: 'book', params: { id: illustration.pid }, query: { page: illustration.page } }">
+  <article class="illust-card" :class="{ compact }">
+    <button class="image-frame" type="button" @click="navigateTo({ name: 'book', params: { id: illustration.pid }, query: { page: String(illustration.page || 1) } })">
       <img v-if="imageUrl" :src="imageUrl" alt="" loading="lazy">
       <span v-else class="empty-image">No image</span>
-    </NuxtLink>
-    <div class="illustration-body">
-      <h3>
-        <NuxtLink :to="{ name: 'book', params: { id: illustration.pid }, query: { page: illustration.page } }">
-          {{ illustration.title || illustration.pid }}
-        </NuxtLink>
-      </h3>
-      <p class="muted">PID: {{ illustration.pid }}<span v-if="illustration.page"> / p.{{ illustration.page }}</span></p>
-      <div v-if="tags.length" class="tag-row">
-        <span v-for="tag in tags.slice(0, 6)" :key="tag">{{ tag }}</span>
-      </div>
+    </button>
+
+    <div v-if="!compact" class="tag-buttons">
+      <button v-for="tag in tags" :key="tag.tagname" type="button" @click="emit('searchTag', { illustration, tag: tag.tagname })">
+        {{ tag.tagname }}
+      </button>
+    </div>
+
+    <div v-if="!compact" class="action-row">
+      <button type="button" @click="emit('search', illustration)">Search</button>
+      <NuxtLink :to="{ name: 'book', params: { id: illustration.pid }, query: { page: String(illustration.page || 1) } }">Book</NuxtLink>
+      <a :href="fullImageUrl" target="_blank" rel="noreferrer">Get</a>
     </div>
   </article>
 </template>
 
 <style scoped>
-.illustration-card {
+.illust-card {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 0.45rem;
 }
 
-.image-link {
-  align-items: center;
-  background: #eef3f7;
-  border: 1px solid #dbe3ed;
-  border-radius: 6px;
-  display: flex;
-  height: 128px;
-  justify-content: center;
-  overflow: hidden;
+.image-frame {
+  background: #fff;
+  border: 1px solid #d8dee8;
+  cursor: pointer;
+  padding: 0.35rem;
 }
 
-.image-link img {
-  height: 100%;
-  object-fit: cover;
+.image-frame img {
+  display: block;
   width: 100%;
 }
 
 .empty-image {
   color: #66788d;
-  font-size: 0.85rem;
+  display: block;
+  padding: 2rem 0;
+  text-align: center;
 }
 
-h3 {
-  font-size: 1.05rem;
-  line-height: 1.5;
-  margin: 0;
-}
-
-h3 a {
-  color: #005eb8;
-}
-
-.tag-row {
+.tag-buttons,
+.action-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  margin-top: 0.6rem;
 }
 
-.tag-row span {
-  background: #e7f0f8;
-  border-radius: 999px;
-  color: #245174;
-  font-size: 0.85rem;
-  padding: 0.2rem 0.55rem;
+.tag-buttons button,
+.action-row button,
+.action-row a {
+  background: #eef5ff;
+  border: 0;
+  color: #0f4c81;
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 0.24rem 0.5rem;
+  text-decoration: none;
 }
 
-@media (max-width: 560px) {
-  .illustration-card {
-    grid-template-columns: 1fr;
-  }
+.action-row a {
+  background: #f4f6f8;
+  color: #334155;
+}
+
+.compact .tag-buttons,
+.compact .action-row {
+  display: none;
 }
 </style>

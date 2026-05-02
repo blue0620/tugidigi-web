@@ -37,7 +37,7 @@ export interface Illustration {
   y?: number;
   w?: number;
   h?: number;
-  graphictags?: Array<{ tagname: string }>;
+  graphictags?: Array<{ tagname: string; confidence?: number }>;
 }
 
 export interface Page {

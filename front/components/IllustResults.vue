@@ -4,131 +4,217 @@ import type { Book, Illustration, SearchResult } from '~/types/domain';
 const route = useRoute();
 const router = useRouter();
 const { normalizeQuery } = useQueryParams();
-const { searchIllustrations, searchMetaBooks } = useSearchApi();
+const { searchIllustrations, searchMetaBooks, getIllustrationsByIds, getIllustrationsByBook, getIllustration } = useSearchApi();
 
 const illustrationResult = ref<SearchResult<Illustration> | null>(null);
 const bookResult = ref<SearchResult<Book> | null>(null);
 const loading = ref(false);
 const error = ref('');
+const qillust = ref<Illustration | null>(null);
 
 const from = computed(() => Math.max(0, Number(route.query.from || 0) || 0));
 const size = computed(() => Math.max(1, Number(route.query.size || 20) || 20));
+const sort = computed(() => String(route.query.sort || ''));
 const hasKeyword = computed(() => {
   const value = route.query.keyword;
-
   return Array.isArray(value) ? value.length > 0 : Boolean(value);
 });
 const facets = computed(() => illustrationResult.value?.facets || []);
+const querySignature = computed(() => JSON.stringify(route.query));
+
+const loadBookIllustrations = async (books: Book[]) => {
+  await Promise.all(
+    books.map(async (book) => {
+      try {
+        book.illusts = book.illustrations?.length
+          ? await getIllustrationsByIds(book.illustrations)
+          : await getIllustrationsByBook(book.id);
+      } catch (illustrationError) {
+        console.error(illustrationError);
+        book.illusts = [];
+      }
+    }),
+  );
+};
 
 const reload = async () => {
   loading.value = true;
   error.value = '';
 
   try {
-    const [illustrations, books] = await Promise.all([
-      searchIllustrations(route.query, {
+    if (hasKeyword.value) {
+      const books = await searchMetaBooks(route.query, {
         from: String(from.value),
         size: String(size.value),
-      }),
-      hasKeyword.value
-        ? searchMetaBooks(route.query, {
-            from: '0',
-            size: '5',
-          })
-        : Promise.resolve(null),
-    ]);
+      });
+      await loadBookIllustrations(books.list || []);
+      bookResult.value = books;
+      illustrationResult.value = null;
+      qillust.value = null;
+    } else {
+      const illustrations = await searchIllustrations(route.query, {
+        from: String(from.value),
+        size: String(size.value),
+        sort: sort.value,
+      });
+      illustrationResult.value = illustrations;
+      bookResult.value = null;
 
-    illustrationResult.value = illustrations;
-    bookResult.value = books;
+      const imageId = String(route.query.image || '');
+      qillust.value = imageId ? await getIllustration(imageId) : null;
+    }
   } catch (err) {
     console.error(err);
     error.value = '検索結果を取得できませんでした。';
     illustrationResult.value = null;
     bookResult.value = null;
+    qillust.value = null;
   } finally {
     loading.value = false;
   }
 };
 
-watch(() => route.fullPath, reload, { immediate: true });
+watch(
+  () => querySignature.value,
+  async () => {
+    await reload();
+  },
+  { immediate: true },
+);
 
-const updateQuery = (updates: Record<string, string | number | undefined>) => {
-  router.push({
-    name: 'illustsearchres',
-    query: normalizeQuery({
-      ...route.query,
-      ...updates,
-    }),
+const updateQuery = async (updates: Record<string, string | string[] | number | undefined>) => {
+  const nextQuery = normalizeQuery({
+    ...route.query,
+    ...updates,
   });
+
+  await router.replace({
+    path: route.path,
+    query: nextQuery,
+  });
+
+  if (querySignature.value === JSON.stringify(nextQuery)) {
+    await reload();
+  }
 };
 
-const updateControls = (value: { size: number }) => {
-  updateQuery({
+const updateControls = async (value: { size: number; sort?: string }) => {
+  await updateQuery({
     from: undefined,
     size: value.size,
+    sort: value.sort || undefined,
   });
 };
 
 const selectedFacetValues = (field: string) => {
   const raw = route.query[`fc-${field}`];
-
   return Array.isArray(raw) ? raw.filter((value): value is string => typeof value === 'string') : typeof raw === 'string' ? [raw] : [];
 };
 
-const updateFacet = (field: string, values: string[] | undefined) => {
-  updateQuery({
+const updateFacet = async (field: string, values: string[] | undefined) => {
+  await updateQuery({
     from: undefined,
     [`fc-${field}`]: values,
   });
 };
+
+const openImageSearch = async (illustration: Illustration) => {
+  await updateQuery({
+    keyword: undefined,
+    imageurl: undefined,
+    keyword2vec: undefined,
+    image: illustration.id,
+    from: undefined,
+  });
+};
+
+const openTagSearch = async (payload: { illustration: Illustration; tag: string }) => {
+  await updateQuery({
+    keyword: undefined,
+    imageurl: undefined,
+    keyword2vec: undefined,
+    image: payload.illustration.id,
+    'fc-graphictags.tagname': [payload.tag],
+    from: undefined,
+  });
+};
+
+const bookKeywords = computed(() => {
+  const value = route.query.keyword;
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : typeof value === 'string' ? [value] : [];
+});
 </script>
 
 <template>
-  <section class="panel result-panel">
-    <div class="result-header">
-      <div>
-        <h2>画像検索結果</h2>
-        <p v-if="illustrationResult" class="muted">{{ illustrationResult.hit.toLocaleString() }} 件</p>
-      </div>
-      <SearchControls :size="size" @update="updateControls" />
-    </div>
+  <section class="result-panel">
+    <div v-if="loading" class="panel muted">検索中です。しばらくお待ちください。</div>
+    <div v-else-if="error" class="panel error-text">{{ error }}</div>
 
-    <p v-if="loading" class="muted">検索しています...</p>
-    <p v-else-if="error" class="error-text">{{ error }}</p>
-    <p v-else-if="illustrationResult && !illustrationResult.list.length" class="muted">該当する画像はありませんでした。</p>
-    <div v-else-if="illustrationResult" class="result-layout">
-      <aside v-if="facets.length" class="facet-column">
-        <SearchFacetPanel
-          v-for="facet in facets"
-          :key="facet.field"
-          :facet="facet"
-          :selected="selectedFacetValues(facet.field)"
-          @update="updateFacet(facet.field, $event)"
+    <template v-else-if="illustrationResult">
+      <div v-if="!illustrationResult.hit" class="panel muted no-hit">該当する画像はありませんでした。</div>
+      <template v-else>
+        <nav class="search-nav">
+          <div class="left-meta">{{ illustrationResult.hit.toLocaleString() }} 件</div>
+          <div class="right-meta">
+            <SearchPagination :total="illustrationResult.hit" :from="from" :size="size" @change="updateQuery({ from: $event })" />
+            <SearchControls :size="size" :sort="sort" @update="updateControls" />
+          </div>
+        </nav>
+
+        <div class="result-layout">
+          <aside v-if="facets.length" class="facet-column">
+            <SearchFacetPanel
+              v-for="facet in facets"
+              :key="facet.field"
+              :facet="facet"
+              :selected="selectedFacetValues(facet.field)"
+              @update="updateFacet(facet.field, $event)"
+            />
+          </aside>
+
+          <div class="result-body">
+            <div v-if="qillust" class="query-illust">
+              <IllustrationResultCard :illustration="qillust" compact />
+            </div>
+            <div class="masonry-grid">
+              <IllustrationResultCard
+                v-for="illustration in illustrationResult.list"
+                :key="illustration.id"
+                :illustration="illustration"
+                @search="openImageSearch"
+                @search-tag="openTagSearch"
+              />
+            </div>
+          </div>
+        </div>
+
+        <nav class="bottom-pagination">
+          <SearchPagination :total="illustrationResult.hit" :from="from" :size="size" @change="updateQuery({ from: $event })" />
+        </nav>
+      </template>
+    </template>
+
+    <template v-else-if="bookResult">
+      <nav v-if="bookResult.hit" class="search-nav">
+        <div class="left-meta">{{ bookResult.hit.toLocaleString() }} 件</div>
+        <div class="right-meta">
+          <SearchPagination :total="bookResult.hit" :from="from" :size="size" @change="updateQuery({ from: $event })" />
+          <SearchControls :size="size" @update="updateControls" />
+        </div>
+      </nav>
+
+      <div v-if="!bookResult.hit" class="panel muted no-hit">該当する資料はありませんでした。</div>
+      <div v-else class="book-result-list">
+        <BookResultCard
+          v-for="book in bookResult.list"
+          :key="book.id"
+          :book="book"
+          :keywords="bookKeywords"
+          show-illustrations
+          @search-illustration="openImageSearch"
         />
-      </aside>
-      <ul class="result-list illustration-list">
-        <li v-for="illustration in illustrationResult.list" :key="illustration.id" class="result-item">
-          <IllustrationResultCard :illustration="illustration" />
-        </li>
-      </ul>
-    </div>
-
-    <SearchPagination
-      v-if="illustrationResult && illustrationResult.hit > size"
-      :total="illustrationResult.hit"
-      :from="from"
-      :size="size"
-      @change="updateQuery({ from: $event })"
-    />
-  </section>
-
-  <section v-if="bookResult && bookResult.list.length" class="panel result-panel">
-    <h2>関連資料</h2>
-    <ul class="result-list">
-      <li v-for="book in bookResult.list" :key="book.id" class="result-item">
-        <BookResultCard :book="book" />
-      </li>
-    </ul>
+      </div>
+    </template>
   </section>
 </template>
 
@@ -137,25 +223,26 @@ const updateFacet = (field: string, values: string[] | undefined) => {
   margin-top: 1rem;
 }
 
-.result-header {
-  align-items: flex-start;
+.search-nav {
+  align-items: center;
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   justify-content: space-between;
+  margin-bottom: 1rem;
 }
 
-h2 {
-  margin: 0;
-}
-
-.error-text {
-  color: #b3261e;
+.right-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .result-layout {
   display: grid;
   gap: 1rem;
-  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  grid-template-columns: minmax(210px, 250px) minmax(0, 1fr);
 }
 
 .facet-column {
@@ -164,13 +251,57 @@ h2 {
   gap: 0.8rem;
 }
 
-@media (max-width: 760px) {
-  .result-header {
-    display: grid;
-  }
+.query-illust {
+  margin-bottom: 1rem;
+  max-width: 220px;
+}
 
+.masonry-grid {
+  column-count: 4;
+  column-gap: 15px;
+}
+
+.masonry-grid :deep(.illust-card) {
+  break-inside: avoid;
+  margin-bottom: 15px;
+}
+
+.book-result-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.bottom-pagination {
+  margin-top: 1rem;
+}
+
+.error-text {
+  color: #b3261e;
+}
+
+.no-hit {
+  text-align: center;
+}
+
+@media (max-width: 1200px) {
+  .masonry-grid {
+    column-count: 3;
+  }
+}
+
+@media (max-width: 900px) {
   .result-layout {
     grid-template-columns: 1fr;
+  }
+
+  .masonry-grid {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .masonry-grid {
+    column-count: 1;
   }
 }
 </style>
