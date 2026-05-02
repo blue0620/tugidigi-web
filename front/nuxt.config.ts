@@ -34,7 +34,7 @@ export default defineNuxtConfig({
     ? {
         devProxy: {
           [devApiProxyPath]: {
-            target: 'https://lab.ndl.go.jp',
+            target: 'https://lab.ndl.go.jp/dl/api/',
             prependPath: true,
             changeOrigin: true,
           },

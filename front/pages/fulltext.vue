@@ -106,11 +106,7 @@ const search = async () => {
       </div>
     </form>
 
-    <section v-if="hasQuery" class="panel search-state">
-      <h2>検索条件</h2>
-      <p>keyword: {{ activeKeywords.join(', ') }}</p>
-      <p class="muted">検索結果 UI は次の移行単位で `FulltextResults` 相当を Nuxt3 化します。</p>
-    </section>
+    <FulltextResults v-if="hasQuery" />
   </main>
 </template>
 

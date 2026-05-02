@@ -17,6 +17,10 @@ export interface Book {
   leftopen?: boolean;
   autoTOCflag?: boolean;
   illustrations?: string[];
+  illusts?: Illustration[];
+  responsibility?: string;
+  creator?: string;
+  publisher?: string;
 }
 
 export interface Illustration {

@@ -27,7 +27,8 @@ const imageUrl = computed(() => String(route.query.imageurl || ''));
         <li class="result-item">image: {{ images.join(', ') || '-' }}</li>
         <li class="result-item">imageurl: {{ imageUrl || '-' }}</li>
       </ul>
-      <p class="muted">結果リスト、ファセット、ページングは次の移行単位で Nuxt3 コンポーネントへ分解します。</p>
     </section>
+
+    <IllustResults />
   </main>
 </template>
