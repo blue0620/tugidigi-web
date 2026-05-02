@@ -1,35 +1,42 @@
 # Nuxt 3 migration notes
 
+## Command policy
+
+- `npm run dev` starts the Nuxt dev server on `0.0.0.0` without forked mode.
+- `npm run build` creates a static SPA with `nuxt generate`; deploy `.output/public`.
+- `npm run build:stg` creates the same static output with `NUXT_APP_BASE_URL=/dl-stg/`.
+- `npm run preview` serves the generated `.output/public` directory.
+
 ## baseURL switching
+
 `nuxt.config.ts` uses `NUXT_APP_BASE_URL` and defaults to `/dl/`.
 
 Examples:
 
-- Development: `NUXT_APP_BASE_URL=/dl/ npm run nuxt:dev`
-- Staging: `NUXT_APP_BASE_URL=/dl-stg/ npm run nuxt:dev`
-- Production build: `NUXT_APP_BASE_URL=/dl/ npm run nuxt:build`
+- Development: `npm run dev`
+- Staging build: `npm run build:stg`
+- Production build: `npm run build`
 
 ## Route mapping from legacy vue-router
 
-| Legacy route | Nuxt page file |
-|---|---|
-| `/` | `pages/index.vue` |
-| `/fulltext` | `pages/fulltext.vue` |
-| `/illust` | `pages/illust/index.vue` |
-| `/illust/search` | `pages/illust/search.vue` |
-| `/book/:id` | `pages/book/[id].vue` |
-| `/mypage` | `pages/mypage.vue` |
+| Legacy route | Nuxt page file | Route name |
+|---|---|---|
+| `/` | `pages/index.vue` | `top` |
+| `/fulltext` | `pages/fulltext.vue` | `fulltextsearch` |
+| `/illust` | `pages/illust/index.vue` | `illustsearch` |
+| `/illust/search` | `pages/illust/search.vue` | `illustsearchres` |
+| `/book/:id` | `pages/book/[id].vue` | `book` |
+| `/mypage` | `pages/mypage.vue` | `mypage` |
 
 ## 404 / catch-all behavior
 
 Legacy app redirected unknown paths to top (`{ path: "*", redirect: { name: "top" } }`).
 Nuxt migration keeps this behavior with `pages/[...slug].vue`, which immediately navigates to `/`.
 
-## URL validation matrix (`baseURL` consistency)
-
-Deep links are validated as:
+## URL validation matrix
 
 ### `NUXT_APP_BASE_URL=/dl/`
+
 - `/dl/`
 - `/dl/fulltext`
 - `/dl/illust`
@@ -38,6 +45,7 @@ Deep links are validated as:
 - `/dl/mypage`
 
 ### `NUXT_APP_BASE_URL=/dl-stg/`
+
 - `/dl-stg/`
 - `/dl-stg/fulltext`
 - `/dl-stg/illust`
@@ -45,12 +53,11 @@ Deep links are validated as:
 - `/dl-stg/book/12345`
 - `/dl-stg/mypage`
 
-### production equivalent
-Use the same prefix as the deployed environment (`/dl/` expected for production at present).
+## API and asset path policy
 
-## API path policy (Nuxt)
-
-- Frontend API calls should use `useApiFetch('/...')` and must not hard-code `/dl/api/...`.
-- `useApiFetch` resolves to `/api/...` and keeps working regardless of `NUXT_APP_BASE_URL`.
-- Development only: `nitro.devProxy` forwards `/api/**` to `http://localhost:19998/**` to avoid CORS.
-- Non-development environments: proxy is disabled; set `NUXT_PUBLIC_API_ORIGIN` when API is on a different origin.
+- Public assets live under `public/assets` and `public/favicon.ico`, without a deployment prefix in the repository.
+- Use `useAppUrl().url('assets/...')` for app-base-aware asset URLs.
+- Frontend API calls should use `useApiFetch('/...')`.
+- `useApiFetch` resolves to the current app base URL plus `api`, for example `/dl/api/...`.
+- Development only: `nitro.devProxy` forwards `/dl/api/**` to `https://lab.ndl.go.jp/dl/api/**`.
+- Non-development environments use the deployed origin by default; set `NUXT_PUBLIC_API_ORIGIN` only when the API is hosted on a different origin.

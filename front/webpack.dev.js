@@ -14,7 +14,7 @@ module.exports = merge(common, {
     proxy: [
       {
         context: ["/dl/api/**"],
-        target: "http://localhost:19998/",
+        target: "https://lab.ndl.go.jp/",
       },
     ],
     historyApiFallback: {

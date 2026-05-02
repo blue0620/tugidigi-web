@@ -1,15 +1,15 @@
-# Frontend 運用コマンド
+# Frontend
 
-## 基本運用
+This directory is being migrated to Nuxt 3.
 
-- 開発時は `npm run dev` を使用する。
-- 本番確認は `npm run build && npm run preview` を使用する。
+## Commands
 
-## 互換運用
+- `npm run dev`: start Nuxt dev server on `0.0.0.0` without forked mode.
+- `npm run build`: generate the static SPA into `.output/public` with base URL `/dl/`.
+- `npm run build:stg`: generate the static SPA into `.output/public` with base URL `/dl-stg/`.
+- `npm run preview`: serve `.output/public` after a build.
 
-- `npm start` は既存運用との互換のため、`npm run dev` のエイリアスとして維持する。
+## Deployment
 
-## 移行方針
-
-- 旧 webpack 系スクリプト（`build-stg` 含む）は `package.json` から削除済み。
-- Nuxt 3 標準スクリプトへの切替を 2026-05-02 に完了した。
+The backend build copies `front/.output/public/*` into `src/main/resources/static/`.
+Spring Boot serves the app under the `/dl/` context path and falls back to `index.html` for deep links.

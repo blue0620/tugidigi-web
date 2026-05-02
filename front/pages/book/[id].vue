@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ name: 'book' });
+
 const route = useRoute();
 </script>
 

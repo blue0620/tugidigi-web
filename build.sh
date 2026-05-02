@@ -20,8 +20,8 @@ cd ..
 
 echo "copy assets"
 pwd
-mkdir src/main/resources/static
-cp -r front/public/dl/* src/main/resources/static/
+mkdir -p src/main/resources/static
+cp -r front/.output/public/* src/main/resources/static/
 ls src/main/resources/static/
 
 echo "start maven"
