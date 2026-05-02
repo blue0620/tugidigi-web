@@ -13,6 +13,7 @@ export interface ItemFacet {
 export interface Book {
   id: string;
   title?: string;
+  volume?: string;
   index?: string[];
   autoTOCindex?: string[];
   publishyear?: number;
@@ -35,4 +36,17 @@ export interface Illustration {
   w?: number;
   h?: number;
   graphictags?: Array<{ tagname: string }>;
+}
+
+export interface Page {
+  id: string;
+  book?: string;
+  page: number;
+  highlights?: string[];
+  divide?: number;
+  rectX?: number;
+  rectY?: number;
+  rectW?: number;
+  rectH?: number;
+  coordjson?: string;
 }

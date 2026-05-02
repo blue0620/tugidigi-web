@@ -1,4 +1,4 @@
-import type { Book, Illustration, SearchResult } from '~/types/domain';
+import type { Book, Illustration, Page, SearchResult } from '~/types/domain';
 
 type RouteQueryValue = string | string[] | null | undefined;
 type RouteQuery = Record<string, RouteQueryValue>;
@@ -58,6 +58,18 @@ export const useSearchApi = () => {
     return useApiFetch<SearchResult<Illustration>>(withQueryString('/illustration/searcheachimage', params));
   };
 
+  const searchBookIllustrations = (query: RouteQuery, overrides: RouteQuery = {}) => {
+    const params = routeQueryToSearchParams(query, overrides);
+
+    return useApiFetch<SearchResult<Illustration>>(withQueryString('/illustration/search', params));
+  };
+
+  const searchPages = (query: RouteQuery, overrides: RouteQuery = {}) => {
+    const params = routeQueryToSearchParams(query, overrides);
+
+    return useApiFetch<SearchResult<Page>>(withQueryString('/page/search', params));
+  };
+
   const getIllustrationsByIds = (ids: string[]) => {
     if (!ids.length) return Promise.resolve([] as Illustration[]);
 
@@ -75,6 +87,8 @@ export const useSearchApi = () => {
     searchNgramBooks,
     searchMetaBooks,
     searchIllustrations,
+    searchBookIllustrations,
+    searchPages,
     getIllustrationsByIds,
     getIllustrationsByBook,
   };
