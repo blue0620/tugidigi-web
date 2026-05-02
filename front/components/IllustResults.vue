@@ -18,6 +18,7 @@ const hasKeyword = computed(() => {
 
   return Array.isArray(value) ? value.length > 0 : Boolean(value);
 });
+const facets = computed(() => illustrationResult.value?.facets || []);
 
 const reload = async () => {
   loading.value = true;
@@ -67,6 +68,19 @@ const updateControls = (value: { size: number }) => {
     size: value.size,
   });
 };
+
+const selectedFacetValues = (field: string) => {
+  const raw = route.query[`fc-${field}`];
+
+  return Array.isArray(raw) ? raw.filter((value): value is string => typeof value === 'string') : typeof raw === 'string' ? [raw] : [];
+};
+
+const updateFacet = (field: string, values: string[] | undefined) => {
+  updateQuery({
+    from: undefined,
+    [`fc-${field}`]: values,
+  });
+};
 </script>
 
 <template>
@@ -82,11 +96,22 @@ const updateControls = (value: { size: number }) => {
     <p v-if="loading" class="muted">検索しています...</p>
     <p v-else-if="error" class="error-text">{{ error }}</p>
     <p v-else-if="illustrationResult && !illustrationResult.list.length" class="muted">該当する画像はありませんでした。</p>
-    <ul v-else-if="illustrationResult" class="result-list illustration-list">
-      <li v-for="illustration in illustrationResult.list" :key="illustration.id" class="result-item">
-        <IllustrationResultCard :illustration="illustration" />
-      </li>
-    </ul>
+    <div v-else-if="illustrationResult" class="result-layout">
+      <aside v-if="facets.length" class="facet-column">
+        <SearchFacetPanel
+          v-for="facet in facets"
+          :key="facet.field"
+          :facet="facet"
+          :selected="selectedFacetValues(facet.field)"
+          @update="updateFacet(facet.field, $event)"
+        />
+      </aside>
+      <ul class="result-list illustration-list">
+        <li v-for="illustration in illustrationResult.list" :key="illustration.id" class="result-item">
+          <IllustrationResultCard :illustration="illustration" />
+        </li>
+      </ul>
+    </div>
 
     <SearchPagination
       v-if="illustrationResult && illustrationResult.hit > size"
@@ -127,9 +152,25 @@ h2 {
   color: #b3261e;
 }
 
+.result-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+}
+
+.facet-column {
+  display: grid;
+  align-content: start;
+  gap: 0.8rem;
+}
+
 @media (max-width: 760px) {
   .result-header {
     display: grid;
+  }
+
+  .result-layout {
+    grid-template-columns: 1fr;
   }
 }
 </style>

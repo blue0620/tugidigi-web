@@ -2,10 +2,12 @@ export interface SearchResult<T> {
   list: T[];
   hit: number;
   from: number;
-  facets?: Array<{
-    field: string;
-    counts: Record<string, number>;
-  }>;
+  facets?: ItemFacet[];
+}
+
+export interface ItemFacet {
+  field: string;
+  counts: Record<string, number>;
 }
 
 export interface Book {

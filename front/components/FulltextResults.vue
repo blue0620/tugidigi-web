@@ -13,6 +13,7 @@ const error = ref('');
 const from = computed(() => Math.max(0, Number(route.query.from || 0) || 0));
 const size = computed(() => Math.max(1, Number(route.query.size || 10) || 10));
 const sort = computed(() => String(route.query.sort || ''));
+const facets = computed(() => result.value?.facets || []);
 
 const reload = async () => {
   loading.value = true;
@@ -52,6 +53,19 @@ const updateControls = (value: { size: number; sort?: string }) => {
     sort: value.sort || undefined,
   });
 };
+
+const selectedFacetValues = (field: string) => {
+  const raw = route.query[`fc-${field}`];
+
+  return Array.isArray(raw) ? raw.filter((value): value is string => typeof value === 'string') : typeof raw === 'string' ? [raw] : [];
+};
+
+const updateFacet = (field: string, values: string[] | undefined) => {
+  updateQuery({
+    from: undefined,
+    [`fc-${field}`]: values,
+  });
+};
 </script>
 
 <template>
@@ -67,11 +81,22 @@ const updateControls = (value: { size: number; sort?: string }) => {
     <p v-if="loading" class="muted">検索しています...</p>
     <p v-else-if="error" class="error-text">{{ error }}</p>
     <p v-else-if="result && !result.list.length" class="muted">該当する資料はありませんでした。</p>
-    <ul v-else-if="result" class="result-list">
-      <li v-for="book in result.list" :key="book.id" class="result-item">
-        <BookResultCard :book="book" />
-      </li>
-    </ul>
+    <div v-else-if="result" class="result-layout">
+      <aside v-if="facets.length" class="facet-column">
+        <SearchFacetPanel
+          v-for="facet in facets"
+          :key="facet.field"
+          :facet="facet"
+          :selected="selectedFacetValues(facet.field)"
+          @update="updateFacet(facet.field, $event)"
+        />
+      </aside>
+      <ul class="result-list">
+        <li v-for="book in result.list" :key="book.id" class="result-item">
+          <BookResultCard :book="book" />
+        </li>
+      </ul>
+    </div>
 
     <SearchPagination
       v-if="result && result.hit > size"
@@ -103,9 +128,25 @@ h2 {
   color: #b3261e;
 }
 
+.result-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+}
+
+.facet-column {
+  display: grid;
+  align-content: start;
+  gap: 0.8rem;
+}
+
 @media (max-width: 760px) {
   .result-header {
     display: grid;
+  }
+
+  .result-layout {
+    grid-template-columns: 1fr;
   }
 }
 </style>
