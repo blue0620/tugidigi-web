@@ -47,3 +47,10 @@ Deep links are validated as:
 
 ### production equivalent
 Use the same prefix as the deployed environment (`/dl/` expected for production at present).
+
+## API path policy (Nuxt)
+
+- Frontend API calls should use `useApiFetch('/...')` and must not hard-code `/dl/api/...`.
+- `useApiFetch` resolves to `/api/...` and keeps working regardless of `NUXT_APP_BASE_URL`.
+- Development only: `nitro.devProxy` forwards `/api/**` to `http://localhost:19998/**` to avoid CORS.
+- Non-development environments: proxy is disabled; set `NUXT_PUBLIC_API_ORIGIN` when API is on a different origin.
