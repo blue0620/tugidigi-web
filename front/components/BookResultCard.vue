@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Book, Illustration } from '~/types/domain';
+import { illustrationCropUrl } from '~/utils/illustration-image';
 
 const props = defineProps<{
   book: Book;
@@ -35,13 +36,15 @@ const detailLink = computed(() => ({
 
 const illustrations = computed(() => props.book.illusts || []);
 
+const illustrationBookLink = (illustration: Illustration) => ({
+  name: 'book' as const,
+  params: { id: illustration.pid },
+  query: illustration.page ? { page: String(illustration.page) } : undefined,
+});
+
 const openIllustrationPage = (illustration: Illustration) => {
   if (!illustration.pid) return;
-  navigateTo({
-    name: 'book',
-    params: { id: illustration.pid },
-    query: illustration.page ? { page: String(illustration.page) } : undefined,
-  });
+  navigateTo(illustrationBookLink(illustration));
 };
 </script>
 
@@ -70,23 +73,29 @@ const openIllustrationPage = (illustration: Illustration) => {
       <div v-if="showIllustrations && illustrations.length" class="illustrations">
         <p class="illustration-label">この資料の中の図表</p>
         <div class="illustration-strip">
-          <button
+          <article
             v-for="illustration in illustrations"
             :key="illustration.id"
             class="illustration-chip"
-            type="button"
-            @click="openIllustrationPage(illustration)"
           >
-            <img
-              :src="`https://www.dl.ndl.go.jp/api/iiif/${encodeURIComponent(illustration.pid)}/R${String(illustration.page || 1).padStart(7, '0')}/full/,128/0/default.jpg`"
-              alt=""
-              loading="lazy"
-            >
-            <span class="chip-actions">
-              <span>{{ illustration.page ? `${illustration.page}コマ` : '図表' }}</span>
-              <span class="chip-link" @click.stop="emit('searchIllustration', illustration)">類似検索</span>
-            </span>
-          </button>
+            <button class="chip-image" type="button" @click="openIllustrationPage(illustration)">
+              <img :src="illustrationCropUrl(illustration, 128)" alt="" loading="lazy">
+            </button>
+            <div class="chip-actions">
+              <a class="chip-action" href="" @click.prevent="emit('searchIllustration', illustration)">
+                <span class="mdi mdi-magnify" aria-hidden="true"></span>
+                <span>Search</span>
+              </a>
+              <NuxtLink class="chip-action" :to="illustrationBookLink(illustration)">
+                <span class="mdi mdi-book-open-variant" aria-hidden="true"></span>
+                <span>Book</span>
+              </NuxtLink>
+              <a class="chip-action" :href="illustrationCropUrl(illustration)" target="_blank" rel="noreferrer">
+                <span class="mdi mdi-download" aria-hidden="true"></span>
+                <span>Get</span>
+              </a>
+            </div>
+          </article>
         </div>
       </div>
     </div>
@@ -187,34 +196,64 @@ const openIllustrationPage = (illustration: Illustration) => {
 }
 
 .illustration-chip {
+  height: 168px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 250px;
+}
+
+.chip-image {
   background: #fff;
   border: 1px solid #d8dee8;
   cursor: pointer;
   display: grid;
-  gap: 0.25rem;
-  min-width: 122px;
   padding: 0.35rem;
-  text-align: left;
+  width: 100%;
 }
 
-.illustration-chip img {
+.chip-image img {
   background: #f6f7fb;
   display: block;
   height: 92px;
-  object-fit: cover;
+  object-fit: contain;
   width: 100%;
 }
 
 .chip-actions {
-  color: #4b5563;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
   display: flex;
-  flex-direction: column;
-  font-size: 0.76rem;
-  gap: 0.15rem;
+  gap: 0;
+  height: 1.25rem;
+  margin-top: 0.2rem;
+  width: 100%;
 }
 
-.chip-link {
-  color: #005eb8;
+.chip-action {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #4b5563;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 1 1 0;
+  font-family: inherit;
+  font-size: 0.76rem;
+  gap: 0.18rem;
+  justify-content: center;
+  line-height: 1.1;
+  min-width: 0;
+  padding: 0;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.chip-action .mdi {
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 @media (max-width: 640px) {

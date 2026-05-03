@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Illustration, SearchResult } from '~/types/domain';
+import { illustrationCropUrl } from '~/utils/illustration-image';
 
 const props = defineProps<{
   qillust?: Illustration | null;
@@ -195,7 +196,7 @@ const topTags = (illustration: Illustration) => (
       </div>
       <div v-else class="sample-grid">
         <button v-for="item in sampleIllustrations" :key="item.id" class="sample-card" type="button" @click="searchBySample(item)">
-          <img :src="`https://www.dl.ndl.go.jp/api/iiif/${encodeURIComponent(item.pid)}/R${String(item.page || 1).padStart(7, '0')}/full/,180/0/default.jpg`" alt="" loading="lazy">
+          <img :src="illustrationCropUrl(item, 180)" alt="" loading="lazy">
         </button>
       </div>
       <div class="reload-row">
@@ -238,7 +239,7 @@ const topTags = (illustration: Illustration) => (
       <div v-else-if="localResults?.list?.length" class="sample-grid inline-results">
         <article v-for="item in localResults.list" :key="item.id" class="inline-result-card">
           <button class="image-only" type="button" @click="openResultPage({ image: item.id })">
-            <img :src="`https://www.dl.ndl.go.jp/api/iiif/${encodeURIComponent(item.pid)}/R${String(item.page || 1).padStart(7, '0')}/full/,180/0/default.jpg`" alt="">
+            <img :src="illustrationCropUrl(item, 180)" alt="">
           </button>
           <div class="inline-tags">
             <button v-for="tag in topTags(item)" :key="tag.tagname" type="button" @click="searchWithTag(item, tag.tagname)">{{ tag.tagname }}</button>
