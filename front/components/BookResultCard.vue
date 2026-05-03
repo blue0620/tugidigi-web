@@ -35,6 +35,14 @@ const detailLink = computed(() => ({
 }));
 
 const illustrations = computed(() => props.book.illusts || []);
+const illustrationPageSize = 4;
+const showIllustrationCarousel = computed(() => illustrations.value.length > illustrationPageSize);
+const illustrationPage = ref(0);
+const maxIllustrationPage = computed(() => Math.max(0, Math.ceil(illustrations.value.length / illustrationPageSize) - 1));
+const visibleIllustrations = computed(() => {
+  const start = illustrationPage.value * illustrationPageSize;
+  return illustrations.value.slice(start, start + illustrationPageSize);
+});
 
 const illustrationBookLink = (illustration: Illustration) => ({
   name: 'book' as const,
@@ -45,6 +53,23 @@ const illustrationBookLink = (illustration: Illustration) => ({
 const openIllustrationPage = (illustration: Illustration) => {
   if (!illustration.pid) return;
   navigateTo(illustrationBookLink(illustration));
+};
+
+watch(
+  () => illustrations.value.length,
+  () => {
+    if (illustrationPage.value > maxIllustrationPage.value) {
+      illustrationPage.value = maxIllustrationPage.value;
+    }
+  },
+);
+
+const changeIllustrationPage = (direction: 'prev' | 'next') => {
+  if (direction === 'prev') {
+    illustrationPage.value = Math.max(0, illustrationPage.value - 1);
+    return;
+  }
+  illustrationPage.value = Math.min(maxIllustrationPage.value, illustrationPage.value + 1);
 };
 </script>
 
@@ -72,30 +97,52 @@ const openIllustrationPage = (illustration: Illustration) => {
 
       <div v-if="showIllustrations && illustrations.length" class="illustrations">
         <p class="illustration-label">この資料の中の図表</p>
-        <div class="illustration-strip">
-          <article
-            v-for="illustration in illustrations"
-            :key="illustration.id"
-            class="illustration-chip"
+        <div class="illustration-carousel">
+          <button
+            v-if="showIllustrationCarousel"
+            class="carousel-button"
+            type="button"
+            aria-label="前へ"
+            :disabled="illustrationPage === 0"
+            @click="changeIllustrationPage('prev')"
           >
-            <button class="chip-image" type="button" @click="openIllustrationPage(illustration)">
-              <img :src="illustrationCropUrl(illustration, 128)" alt="" loading="lazy">
-            </button>
-            <div class="chip-actions">
-              <a class="chip-action" href="" @click.prevent="emit('searchIllustration', illustration)">
-                <span class="mdi mdi-magnify" aria-hidden="true"></span>
-                <span>Search</span>
-              </a>
-              <NuxtLink class="chip-action" :to="illustrationBookLink(illustration)">
-                <span class="mdi mdi-book-open-variant" aria-hidden="true"></span>
-                <span>Book</span>
-              </NuxtLink>
-              <a class="chip-action" :href="illustrationCropUrl(illustration)" target="_blank" rel="noreferrer">
-                <span class="mdi mdi-download" aria-hidden="true"></span>
-                <span>Get</span>
-              </a>
-            </div>
-          </article>
+            <span class="mdi mdi-chevron-left" aria-hidden="true"></span>
+          </button>
+          <div class="illustration-strip">
+            <article
+              v-for="illustration in visibleIllustrations"
+              :key="illustration.id"
+              class="illustration-chip"
+            >
+              <button class="chip-image" type="button" @click="openIllustrationPage(illustration)">
+                <img :src="illustrationCropUrl(illustration, 128)" alt="" loading="lazy">
+              </button>
+              <div class="chip-actions">
+                <a class="chip-action" href="" @click.prevent="emit('searchIllustration', illustration)">
+                  <span class="mdi mdi-magnify" aria-hidden="true"></span>
+                  <span>Search</span>
+                </a>
+                <NuxtLink class="chip-action" :to="illustrationBookLink(illustration)">
+                  <span class="mdi mdi-book-open-variant" aria-hidden="true"></span>
+                  <span>Book</span>
+                </NuxtLink>
+                <a class="chip-action" :href="illustrationCropUrl(illustration)" target="_blank" rel="noreferrer">
+                  <span class="mdi mdi-download" aria-hidden="true"></span>
+                  <span>Get</span>
+                </a>
+              </div>
+            </article>
+          </div>
+          <button
+            v-if="showIllustrationCarousel"
+            class="carousel-button"
+            type="button"
+            aria-label="次へ"
+            :disabled="illustrationPage >= maxIllustrationPage"
+            @click="changeIllustrationPage('next')"
+          >
+            <span class="mdi mdi-chevron-right" aria-hidden="true"></span>
+          </button>
         </div>
       </div>
     </div>
@@ -188,11 +235,40 @@ const openIllustrationPage = (illustration: Illustration) => {
   margin: 0 0 0.45rem;
 }
 
-.illustration-strip {
+.illustration-carousel {
+  align-items: center;
   display: flex;
+  gap: 0.5rem;
+}
+
+.illustration-strip {
+  display: grid;
   gap: 0.6rem;
-  overflow-x: auto;
+  grid-template-columns: repeat(4, minmax(0, 250px));
   padding-bottom: 0.2rem;
+}
+
+.carousel-button {
+  align-items: center;
+  appearance: none;
+  background: #fff;
+  border: 1px solid #d8dee8;
+  color: #4b5563;
+  cursor: pointer;
+  display: inline-flex;
+  height: 2rem;
+  justify-content: center;
+  padding: 0;
+  width: 2rem;
+}
+
+.carousel-button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.carousel-button .mdi {
+  font-size: 1.1rem;
 }
 
 .illustration-chip {
@@ -264,6 +340,10 @@ const openIllustrationPage = (illustration: Illustration) => {
   .thumb-frame {
     height: 96px;
     width: 96px;
+  }
+
+  .illustration-strip {
+    grid-template-columns: 1fr;
   }
 }
 </style>
