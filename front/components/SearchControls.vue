@@ -55,15 +55,20 @@ const apply = () => {
   align-items: end;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem 0.75rem;
   justify-content: flex-end;
 }
 
 .control-label {
   color: #53657a;
   display: grid;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   gap: 0.2rem;
-  min-width: 120px;
+  min-width: 108px;
+}
+
+.select {
+  min-height: 2rem;
+  padding: 0.2rem 1.75rem 0.2rem 0.45rem;
 }
 </style>

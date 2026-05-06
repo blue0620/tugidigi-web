@@ -68,9 +68,10 @@ const bookLink = computed(() => ({
   height: 250px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  max-width: 320px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: 250px;
+  width: 100%;
 }
 
 .image-frame {
@@ -113,10 +114,11 @@ const bookLink = computed(() => ({
 .action-row {
   align-items: center;
   background: rgba(255, 255, 255, 0.92);
-  display: flex;
+  display: grid;
   gap: 0;
-  height: 1.25rem;
-  padding: 0 0.2rem 0.2rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: 1.05rem;
+  padding: 0 0.05rem 0.15rem;
 }
 
 .action-link {
@@ -127,12 +129,11 @@ const bookLink = computed(() => ({
   color: #4b5563;
   cursor: pointer;
   display: inline-flex;
-  flex: 1 1 0;
   font-family: inherit;
-  font-size: 0.76rem;
-  gap: 0.18rem;
+  font-size: 0.7rem;
+  gap: 0.08rem;
   justify-content: center;
-  line-height: 1.1;
+  line-height: 1;
   min-width: 0;
   padding: 0;
   text-align: center;
@@ -141,12 +142,13 @@ const bookLink = computed(() => ({
 }
 
 .action-link .mdi {
-  font-size: 0.9rem;
+  font-size: 0.76rem;
   line-height: 1;
 }
 
 .compact {
-  width: 250px;
+  max-width: 320px;
+  width: 100%;
 }
 
 .compact .tag-buttons,

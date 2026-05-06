@@ -153,31 +153,30 @@ const isExcluded = (value: string) => excludedValues.value.includes(value);
 <style scoped>
 .facet-panel {
   background: #ffffff;
-  border: 1px solid #dbe3ed;
-  border-radius: 8px;
   overflow: hidden;
 }
 
 .facet-header {
   align-items: center;
-  background: #f3f7fb;
+  background: transparent;
   border: 0;
   color: #1e2a38;
   cursor: pointer;
   display: flex;
+  font-weight: 700;
   justify-content: space-between;
-  padding: 0.8rem 0.9rem;
+  padding: 0 0 0.5rem;
   width: 100%;
 }
 
 .facet-body {
-  padding: 0.8rem 0.9rem 0.9rem;
+  padding: 0;
 }
 
 .facet-list,
 .excluded-list {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.15rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -185,15 +184,16 @@ const isExcluded = (value: string) => excludedValues.value.includes(value);
 
 .facet-item {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.15rem;
 }
 
 .facet-choice {
   align-items: center;
   cursor: pointer;
   display: grid;
-  gap: 0.45rem;
+  gap: 0.35rem;
   grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 2.25rem;
 }
 
 .facet-choice.is-selected {
@@ -217,6 +217,7 @@ const isExcluded = (value: string) => excludedValues.value.includes(value);
   border: 0;
   color: #6b4e00;
   cursor: pointer;
+  font-size: 0.82rem;
   justify-self: start;
   padding: 0;
 }
@@ -227,14 +228,13 @@ const isExcluded = (value: string) => excludedValues.value.includes(value);
 }
 
 .excluded-list {
-  border-top: 1px solid #e5ebf2;
   margin-top: 0.8rem;
   padding-top: 0.8rem;
+  border-top: 1px solid #e5ebf2;
 }
 
 .excluded-list li {
   background: #eef2f6;
-  border-radius: 6px;
   color: #53657a;
   padding: 0.45rem 0.6rem;
 }

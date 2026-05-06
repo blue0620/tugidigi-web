@@ -35,8 +35,13 @@ const next = () => {
 .search-pagination {
   align-items: center;
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   justify-content: center;
+}
+
+.search-pagination :deep(.button) {
+  min-height: 2rem;
+  padding: 0.2rem 0.7rem;
 }
 
 button:disabled {

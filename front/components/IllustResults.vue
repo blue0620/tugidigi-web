@@ -246,6 +246,8 @@ const bookKeywords = computed(() => {
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: space-between;
+  padding-left: 1rem;
+  padding-right: 1rem;
   margin-bottom: 1rem;
 }
 
@@ -276,17 +278,18 @@ const bookKeywords = computed(() => {
 }
 
 .masonry-grid {
-  column-count: 4;
-  column-gap: 15px;
+  column-gap: 10px;
+  column-width: 320px;
 }
 
 .masonry-grid :deep(.illust-card) {
   break-inside: avoid;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .result-body {
   background: #fff;
+  min-height: 1px;
 }
 
 .book-result-list {
@@ -306,25 +309,9 @@ const bookKeywords = computed(() => {
   text-align: center;
 }
 
-@media (max-width: 1200px) {
-  .masonry-grid {
-    column-count: 3;
-  }
-}
-
 @media (max-width: 900px) {
   .result-layout {
     grid-template-columns: 1fr;
-  }
-
-  .masonry-grid {
-    column-count: 2;
-  }
-}
-
-@media (max-width: 560px) {
-  .masonry-grid {
-    column-count: 1;
   }
 }
 </style>

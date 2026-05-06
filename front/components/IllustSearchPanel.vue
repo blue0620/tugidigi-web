@@ -141,7 +141,7 @@ const searchByUrl = async () => {
 
 const searchByWords = async () => {
   if (!keyword2vec.value.trim()) {
-    $notify('キーワードを入力してください。', 'error');
+    $notify('単語や文章を入力してください。', 'error');
     return;
   }
   await openResultPage({ keyword2vec: keyword2vec.value.trim() });
@@ -149,6 +149,7 @@ const searchByWords = async () => {
 
 const reloadSample = async (facet: 'picture' | 'graphic') => {
   try {
+    selectedSample.value = null;
     sampleIllustrations.value = await getRandomIllustrationsWithFacet(facet);
   } catch (error) {
     console.error(error);
@@ -265,16 +266,31 @@ watch(
     <h1 class="page-title">画像検索</h1>
 
     <div class="tab-row">
-      <button type="button" :class="{ 'is-active': activeTab === 'sample' }" @click="activeTab = 'sample'">サンプル画像から</button>
-      <button type="button" :class="{ 'is-active': activeTab === 'metadata' }" @click="activeTab = 'metadata'">資料のタイトルや目次から</button>
-      <button type="button" :class="{ 'is-active': activeTab === 'local' }" @click="activeTab = 'local'">手元の画像から</button>
-      <button type="button" :class="{ 'is-active': activeTab === 'url' }" @click="activeTab = 'url'">URLから</button>
-      <button type="button" :class="{ 'is-active': activeTab === 'words' }" @click="activeTab = 'words'">言葉から</button>
+      <button type="button" :class="{ 'is-active': activeTab === 'sample' }" @click="activeTab = 'sample'">
+        <span class="mdi mdi-image" aria-hidden="true"></span>
+        <span>サンプル画像から</span>
+      </button>
+      <button type="button" :class="{ 'is-active': activeTab === 'metadata' }" @click="activeTab = 'metadata'">
+        <span class="mdi mdi-image-search" aria-hidden="true"></span>
+        <span>資料のタイトルや目次から</span>
+      </button>
+      <button type="button" :class="{ 'is-active': activeTab === 'local' }" @click="activeTab = 'local'">
+        <span class="mdi mdi-image-plus" aria-hidden="true"></span>
+        <span>手元の画像から</span>
+      </button>
+      <button type="button" :class="{ 'is-active': activeTab === 'url' }" @click="activeTab = 'url'">
+        <span class="mdi mdi-link-variant" aria-hidden="true"></span>
+        <span>URLから</span>
+      </button>
+      <button type="button" :class="{ 'is-active': activeTab === 'words' }" @click="activeTab = 'words'">
+        <span class="mdi mdi-text-search" aria-hidden="true"></span>
+        <span>単語や文章から</span>
+      </button>
     </div>
 
     <section v-if="activeTab === 'sample'" class="panel-block">
       <p class="guide" :class="{ 'is-hidden': selectedSample }">
-        サンプルの中から画像を選んでください。選んだ画像を含む資料や、さらに似た画像を検索できます。
+        サンプルの中から画像を選んでください。さらに似た画像や、その画像を含む資料を検索できます。
       </p>
       <div v-if="selectedSample" class="query-illustration">
         <IllustrationResultCard :illustration="selectedSample" compact />
@@ -285,20 +301,20 @@ watch(
         </button>
       </div>
       <div class="reload-row">
-        <button class="button" type="button" @click="reloadSample('picture')">写真を替える</button>
-        <button class="button" type="button" @click="reloadSample('graphic')">図版を替える</button>
+        <button class="button" type="button" @click="reloadSample('picture')">写真を探す</button>
+        <button class="button" type="button" @click="reloadSample('graphic')">絵を探す</button>
       </div>
     </section>
 
     <section v-else-if="activeTab === 'metadata'" class="panel-block">
-      <p class="guide">検索したいキーワードを入力してください。表示された関連資料の画像から検索できます。</p>
+      <p class="guide">検索したいキーワードを入力してください。表示された資料の画像から検索できます。</p>
       <form class="search-form" @submit.prevent="searchByKeyword()">
         <div class="search-input-row">
           <input v-model="keyword" class="input" type="text" autocomplete="off">
           <button class="button" type="submit">検索</button>
         </div>
         <div class="preset-row">
-          <span>キーワード例:</span>
+          <span>キーワード例</span>
           <button type="button" @click="searchByKeyword(['楽面'])">楽面</button>
           <button type="button" @click="searchByKeyword(['友禅'])">友禅</button>
           <button type="button" @click="searchByKeyword(['造船'])">造船</button>
@@ -336,7 +352,7 @@ watch(
     </section>
 
     <section v-else-if="activeTab === 'url'" class="panel-block">
-      <p class="guide">検索したい画像の URL を入力してください。</p>
+      <p class="guide">画像の URL を入力して検索します。</p>
       <form class="search-form" @submit.prevent="searchByUrl">
         <div class="search-input-row">
           <input v-model="targetUrl" class="input" type="url" autocomplete="off">
@@ -357,7 +373,7 @@ watch(
     </section>
 
     <section v-else class="panel-block">
-      <p class="guide">検索したい画像をイメージして、言葉を入力してください。</p>
+      <p class="guide">単語や文章から、イメージに近い画像を検索します。</p>
       <form class="search-form" @submit.prevent="searchByWords">
         <div class="search-input-row">
           <input v-model="keyword2vec" class="input" type="text" autocomplete="off">
@@ -382,12 +398,20 @@ watch(
 }
 
 .tab-row button {
+  align-items: center;
   background: transparent;
   border: 0;
   border-bottom: 3px solid transparent;
   color: #53657a;
   cursor: pointer;
+  display: inline-flex;
+  gap: 0.35rem;
   padding: 0.75rem 0.9rem;
+}
+
+.tab-row button .mdi {
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .tab-row button.is-active {
@@ -415,7 +439,7 @@ watch(
 .sample-grid {
   display: grid;
   gap: 0.9rem;
-  grid-template-columns: repeat(5, 250px);
+  grid-template-columns: repeat(5, 320px);
   justify-content: center;
 }
 
@@ -423,9 +447,9 @@ watch(
 .image-only {
   background: #fff;
   border: 1px solid #d8dee8;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
   cursor: pointer;
   padding: 0.4rem;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
 }
 
 .sample-card img,
@@ -530,19 +554,19 @@ watch(
   text-align: center;
 }
 
-@media (max-width: 1500px) {
+@media (max-width: 1700px) {
   .sample-grid {
-    grid-template-columns: repeat(4, 250px);
+    grid-template-columns: repeat(4, 320px);
   }
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1360px) {
   .sample-grid {
-    grid-template-columns: repeat(3, 250px);
+    grid-template-columns: repeat(3, 320px);
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 980px) {
   .search-form {
     width: 100%;
   }
@@ -557,13 +581,13 @@ watch(
   }
 
   .sample-grid {
-    grid-template-columns: repeat(2, minmax(0, 250px));
+    grid-template-columns: repeat(2, minmax(0, 320px));
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 700px) {
   .sample-grid {
-    grid-template-columns: minmax(0, 250px);
+    grid-template-columns: minmax(0, 320px);
   }
 }
 </style>
