@@ -801,15 +801,24 @@ const addKeywordMarkers = async (pageId: string) => {
   if (markerLayer) map.removeLayer(markerLayer);
   markerLayer = new LRef.LayerGroup();
 
-  if (!props.keywords?.length || div.value) {
+  if (!props.keywords?.length || div.value || !props.book?.id || !pageId) {
     markerLayer.addTo(map);
     return;
   }
 
-  const [pageData, analyzedPage] = await Promise.all([
-    useApiFetch<Page>(`/page/${pageId}`),
-    useApiFetch<Page>(`/analyze/page/${pageId}`),
-  ]);
+  let pageData: Page;
+  let analyzedPage: Page;
+
+  try {
+    [pageData, analyzedPage] = await Promise.all([
+      useApiFetch<Page>(`/page/${pageId}`),
+      useApiFetch<Page>(`/analyze/page/${pageId}`),
+    ]);
+  } catch (error) {
+    console.error(error);
+    markerLayer.addTo(map);
+    return;
+  }
 
   if (!pageData.coordjson || !analyzedPage.coordjson) {
     markerLayer.addTo(map);
@@ -915,7 +924,9 @@ const setCurrentIiifPage = async (pageNumber: number) => {
   await getInitialZoom(infoUrl);
   fitBounds();
   resolveDirection();
-  await addKeywordMarkers(`${props.book?.id}_${pageNumber}`);
+  if (props.book?.id) {
+    await addKeywordMarkers(`${props.book.id}_${pageNumber}`);
+  }
 };
 
 const loadManifest = async () => {
@@ -964,7 +975,7 @@ watch(() => props.manifestUrl, () => {
   loadManifest();
 });
 
-watch(() => [currentPage.value, props.keywords?.join('|') || '', route.fullPath, div.value ? '1' : '0'].join(':'), async () => {
+watch(() => [currentPage.value, props.keywords?.join('|') || '', route.fullPath, div.value ? '1' : '0', props.book?.id || ''].join(':'), async () => {
   if (map && manifest.value) {
     await setCurrentIiifPage(currentPage.value);
   }

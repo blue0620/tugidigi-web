@@ -2,12 +2,15 @@
 import type { Illustration, SearchResult } from '~/types/domain';
 import { illustrationCropUrl } from '~/utils/illustration-image';
 
+type SearchTab = 'sample' | 'metadata' | 'local' | 'url' | 'words';
+type CropRect = { x: number; y: number; width: number; height: number };
+
 const props = defineProps<{
   qillust?: Illustration | null;
   initialKeyword?: string;
   initialUrl?: string;
   initialKeyword2vec?: string;
-  initialTab?: 'sample' | 'metadata' | 'local' | 'url' | 'words';
+  initialTab?: SearchTab;
 }>();
 
 const route = useRoute();
@@ -22,20 +25,23 @@ const {
   searchIllustrationsByFeature,
 } = useSearchApi();
 
-const activeTab = ref<'sample' | 'metadata' | 'local' | 'url' | 'words'>(props.initialTab || 'sample');
+const activeTab = ref<SearchTab>(props.initialTab || 'sample');
 const keyword = ref(props.initialKeyword || '');
 const targetUrl = ref(props.initialUrl || '');
 const keyword2vec = ref(props.initialKeyword2vec || '');
+
 const sampleIllustrations = ref<Illustration[]>([]);
+const selectedSample = ref<Illustration | null>(props.qillust || null);
+
 const localImage = ref('');
 const localResults = ref<SearchResult<Illustration> | null>(null);
 const localLoading = ref(false);
 const localError = ref('');
+const cropModalActive = ref(false);
+
 const urlResults = ref<SearchResult<Illustration> | null>(null);
 const urlLoading = ref(false);
 const urlError = ref('');
-const selectedSample = ref<Illustration | null>(props.qillust || null);
-const cropModalActive = ref(false);
 
 watch(
   () => [props.initialKeyword, props.initialUrl, props.initialKeyword2vec, props.initialTab, props.qillust],
@@ -45,12 +51,18 @@ watch(
     keyword2vec.value = props.initialKeyword2vec || '';
     activeTab.value = props.initialTab || 'sample';
     selectedSample.value = props.qillust || null;
-    urlResults.value = null;
-    urlError.value = '';
   },
 );
 
-const loadDefaultIllustrations = async () => {
+const tabItems: Array<{ key: SearchTab; label: string; icon: string }> = [
+  { key: 'sample', label: 'サンプル画像から', icon: 'mdi-image' },
+  { key: 'metadata', label: '資料のタイトルや目次から', icon: 'mdi-image-search' },
+  { key: 'local', label: '手元の画像から', icon: 'mdi-image-plus' },
+  { key: 'url', label: 'URLから', icon: 'mdi-link-variant' },
+  { key: 'words', label: '単語や文章から', icon: 'mdi-text-search' },
+];
+
+const loadDefaultSamples = async () => {
   try {
     sampleIllustrations.value = await getDefaultIllustrations();
   } catch (error) {
@@ -59,7 +71,7 @@ const loadDefaultIllustrations = async () => {
   }
 };
 
-onMounted(loadDefaultIllustrations);
+onMounted(loadDefaultSamples);
 
 watch(
   () => route.query.image,
@@ -76,15 +88,6 @@ watch(
     }
   },
   { immediate: true },
-);
-
-watch(
-  () => activeTab.value,
-  async (tab) => {
-    if (tab === 'sample' && !selectedSample.value && !sampleIllustrations.value.length) {
-      await loadDefaultIllustrations();
-    }
-  },
 );
 
 const openResultPage = async (query: Record<string, string | string[] | undefined>) => {
@@ -108,6 +111,100 @@ const searchByKeyword = async (presetKeywords?: string[]) => {
     return;
   }
   await openResultPage({ keyword: keywords });
+};
+
+const reloadSample = async (facet: 'picture' | 'graphic') => {
+  try {
+    selectedSample.value = null;
+    sampleIllustrations.value = await getRandomIllustrationsWithFacet(facet);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const selectFile = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (loadEvent) => {
+    localImage.value = String(loadEvent.target?.result || '');
+    localResults.value = null;
+    localError.value = '';
+  };
+  reader.readAsDataURL(file);
+};
+
+const createSearchImage = async (source: string, rect?: CropRect) => {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const element = new Image();
+    element.onload = () => resolve(element);
+    element.onerror = reject;
+    element.src = source;
+  });
+
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  if (!context) return source;
+
+  canvas.width = 224;
+  canvas.height = 224;
+
+  if (rect) {
+    context.drawImage(image, rect.x, rect.y, rect.width, rect.height, 0, 0, 224, 224);
+  } else {
+    context.drawImage(image, 0, 0, image.width, image.height, 0, 0, 224, 224);
+  }
+
+  return canvas.toDataURL('image/jpeg');
+};
+
+const analyzeLocalImage = async (rect?: CropRect) => {
+  if (!localImage.value) return;
+  localLoading.value = true;
+  localError.value = '';
+  localResults.value = null;
+  try {
+    const searchImage = await createSearchImage(localImage.value, rect);
+    const response = await fetch(String(runtimeConfig.public.imageFeaturesEndpoint), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ img_b64: searchImage }),
+    });
+    const payload = await response.json();
+    const features = payload?.body;
+    if (!features) {
+      localError.value = '画像を解析できませんでした。';
+      return;
+    }
+    localResults.value = await searchIllustrationsByFeature(features);
+  } catch (error) {
+    console.error(error);
+    localError.value = '画像検索に失敗しました。';
+  } finally {
+    localLoading.value = false;
+  }
+};
+
+const clearLocalImage = () => {
+  localImage.value = '';
+  localResults.value = null;
+  localError.value = '';
+  cropModalActive.value = false;
+  localLoading.value = false;
+};
+
+const openCropModal = () => {
+  if (!localImage.value) return;
+  cropModalActive.value = true;
+};
+
+const cropSearch = async (rect: CropRect | null) => {
+  cropModalActive.value = false;
+  if (rect) {
+    await analyzeLocalImage(rect);
+  }
 };
 
 const searchByUrl = async () => {
@@ -147,86 +244,6 @@ const searchByWords = async () => {
   await openResultPage({ keyword2vec: keyword2vec.value.trim() });
 };
 
-const reloadSample = async (facet: 'picture' | 'graphic') => {
-  try {
-    selectedSample.value = null;
-    sampleIllustrations.value = await getRandomIllustrationsWithFacet(facet);
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-const selectFile = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    localImage.value = String(reader.result || '');
-    localResults.value = null;
-    localError.value = '';
-  };
-  reader.readAsDataURL(file);
-};
-
-const createSearchImage = async (source: string, rect?: { x: number; y: number; width: number; height: number }) => {
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const element = new Image();
-    element.onload = () => resolve(element);
-    element.onerror = reject;
-    element.src = source;
-  });
-
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  if (!context) return source;
-
-  canvas.width = 224;
-  canvas.height = 224;
-
-  if (rect) {
-    context.drawImage(image, rect.x, rect.y, rect.width, rect.height, 0, 0, 224, 224);
-  } else {
-    context.drawImage(image, 0, 0, image.width, image.height, 0, 0, 224, 224);
-  }
-
-  return canvas.toDataURL('image/jpeg');
-};
-
-const analyzeLocalImage = async (rect?: { x: number; y: number; width: number; height: number }) => {
-  if (!localImage.value) return;
-  localLoading.value = true;
-  localError.value = '';
-  try {
-    const searchImage = await createSearchImage(localImage.value, rect);
-    const response = await fetch(String(runtimeConfig.public.imageFeaturesEndpoint), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ img_b64: searchImage }),
-    });
-    const payload = await response.json();
-    const features = payload?.body;
-    if (!features) {
-      localError.value = '画像を解析できませんでした。';
-      return;
-    }
-    localResults.value = await searchIllustrationsByFeature(features);
-  } catch (error) {
-    console.error(error);
-    localError.value = '画像検索に失敗しました。';
-  } finally {
-    localLoading.value = false;
-  }
-};
-
-const clearLocalImage = () => {
-  localImage.value = '';
-  localResults.value = null;
-  localError.value = '';
-  cropModalActive.value = false;
-};
-
 const searchWithTag = async (illustration: Illustration, tag: string) => {
   await openResultPage({
     image: illustration.id,
@@ -237,18 +254,6 @@ const searchWithTag = async (illustration: Illustration, tag: string) => {
 const topTags = (illustration: Illustration) => (
   illustration.graphictags?.slice().sort((a, b) => (b.confidence || 0) - (a.confidence || 0)).slice(0, 3) || []
 );
-
-const openCropModal = () => {
-  if (!localImage.value) return;
-  cropModalActive.value = true;
-};
-
-const cropSearch = async (rect: { x: number; y: number; width: number; height: number } | null) => {
-  cropModalActive.value = false;
-  if (rect) {
-    await analyzeLocalImage(rect);
-  }
-};
 
 watch(
   () => [activeTab.value, targetUrl.value, props.initialTab],
@@ -266,31 +271,21 @@ watch(
     <h1 class="page-title">画像検索</h1>
 
     <div class="tab-row">
-      <button type="button" :class="{ 'is-active': activeTab === 'sample' }" @click="activeTab = 'sample'">
-        <span class="mdi mdi-image" aria-hidden="true"></span>
-        <span>サンプル画像から</span>
-      </button>
-      <button type="button" :class="{ 'is-active': activeTab === 'metadata' }" @click="activeTab = 'metadata'">
-        <span class="mdi mdi-image-search" aria-hidden="true"></span>
-        <span>資料のタイトルや目次から</span>
-      </button>
-      <button type="button" :class="{ 'is-active': activeTab === 'local' }" @click="activeTab = 'local'">
-        <span class="mdi mdi-image-plus" aria-hidden="true"></span>
-        <span>手元の画像から</span>
-      </button>
-      <button type="button" :class="{ 'is-active': activeTab === 'url' }" @click="activeTab = 'url'">
-        <span class="mdi mdi-link-variant" aria-hidden="true"></span>
-        <span>URLから</span>
-      </button>
-      <button type="button" :class="{ 'is-active': activeTab === 'words' }" @click="activeTab = 'words'">
-        <span class="mdi mdi-text-search" aria-hidden="true"></span>
-        <span>単語や文章から</span>
+      <button
+        v-for="item in tabItems"
+        :key="item.key"
+        type="button"
+        :class="{ 'is-active': activeTab === item.key }"
+        @click="activeTab = item.key"
+      >
+        <span class="mdi" :class="item.icon" aria-hidden="true"></span>
+        <span>{{ item.label }}</span>
       </button>
     </div>
 
     <section v-if="activeTab === 'sample'" class="panel-block">
       <p class="guide" :class="{ 'is-hidden': selectedSample }">
-        サンプルの中から画像を選んでください。さらに似た画像や、その画像を含む資料を検索できます。
+        サンプルの中から画像を選んでください。選んだ画像に似た画像や、それを含む資料を検索できます。
       </p>
       <div v-if="selectedSample" class="query-illustration">
         <IllustrationResultCard :illustration="selectedSample" compact />
@@ -325,43 +320,53 @@ watch(
     </section>
 
     <section v-else-if="activeTab === 'local'" class="panel-block">
-      <div class="upload-area">
-        <input type="file" accept="image/*" @change="selectFile">
+      <div v-if="!localImage" class="upload-area">
+        <label class="upload-drop">
+          <input type="file" accept="image/*" @change="selectFile">
+          <span>ここに画像をドロップするか、クリックして選択してください</span>
+        </label>
       </div>
-      <div v-if="localImage" class="local-preview">
-        <img :src="localImage" alt="">
+
+      <div v-else class="local-preview-block">
+        <img :src="localImage" alt="" class="local-preview-image">
         <div class="local-actions">
           <button class="button" type="button" @click="analyzeLocalImage">解析して検索</button>
+          <button class="button is-secondary" type="button" @click="clearLocalImage">
+            <span class="mdi mdi-delete" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="local-actions">
           <button class="button" type="button" @click="openCropModal">画像の一部から検索する</button>
-          <button class="button is-secondary" type="button" @click="clearLocalImage">クリア</button>
         </div>
       </div>
-      <p v-if="localLoading" class="muted">画像を解析しています...</p>
-      <p v-else-if="localError" class="error-text">{{ localError }}</p>
-      <div v-else-if="localResults?.list?.length" class="sample-grid inline-results">
-        <article v-for="item in localResults.list" :key="item.id" class="inline-result-card">
-          <button class="image-only" type="button" @click="openResultPage({ image: item.id })">
-            <img :src="illustrationCropUrl(item, 180)" alt="">
-          </button>
-          <div class="inline-tags">
-            <button v-for="tag in topTags(item)" :key="tag.tagname" type="button" @click="searchWithTag(item, tag.tagname)">{{ tag.tagname }}</button>
-          </div>
-        </article>
+
+      <div v-if="localLoading" class="muted">検索中です。しばらくお待ちください。</div>
+      <div v-else-if="localError" class="error-text">{{ localError }}</div>
+
+      <div v-if="localResults?.list?.length" class="inline-results">
+        <IllustrationResultCard
+          v-for="item in localResults.list"
+          :key="item.id"
+          :illustration="item"
+          @search="openResultPage({ image: $event.id })"
+          @search-tag="searchWithTag($event.illustration, $event.tag)"
+        />
       </div>
+
       <RectEditorModal v-if="cropModalActive" :image-src="localImage" @close="cropSearch" />
     </section>
 
     <section v-else-if="activeTab === 'url'" class="panel-block">
-      <p class="guide">画像の URL を入力して検索します。</p>
+      <p class="guide">検索したい画像の URL を入力してください。</p>
       <form class="search-form" @submit.prevent="searchByUrl">
         <div class="search-input-row">
           <input v-model="targetUrl" class="input" type="url" autocomplete="off">
           <button class="button" type="submit">検索</button>
         </div>
       </form>
-      <p v-if="urlLoading" class="muted">画像を解析しています...</p>
-      <p v-else-if="urlError" class="error-text">{{ urlError }}</p>
-      <div v-else-if="urlResults?.list?.length" class="sample-grid inline-results">
+      <div v-if="urlLoading" class="muted">検索中です。しばらくお待ちください。</div>
+      <div v-else-if="urlError" class="error-text">{{ urlError }}</div>
+      <div v-if="urlResults?.list?.length" class="inline-results">
         <IllustrationResultCard
           v-for="item in urlResults.list"
           :key="item.id"
@@ -436,15 +441,16 @@ watch(
   visibility: hidden;
 }
 
-.sample-grid {
+.sample-grid,
+.inline-results {
   display: grid;
   gap: 0.9rem;
   grid-template-columns: repeat(5, 320px);
   justify-content: center;
+  margin-top: 1rem;
 }
 
-.sample-card,
-.image-only {
+.sample-card {
   background: #fff;
   border: 1px solid #d8dee8;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
@@ -453,13 +459,18 @@ watch(
 }
 
 .sample-card img,
-.image-only img,
-.local-preview img {
+.local-preview-image {
   display: block;
   height: 180px;
   max-width: 100%;
   object-fit: contain;
   width: 100%;
+}
+
+.reload-row,
+.query-illustration {
+  display: flex;
+  justify-content: center;
 }
 
 .reload-row,
@@ -469,15 +480,6 @@ watch(
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-top: 0.9rem;
-}
-
-.reload-row,
-.query-illustration {
-  justify-content: center;
-}
-
-.query-illustration {
-  display: flex;
 }
 
 .search-form {
@@ -501,47 +503,34 @@ watch(
 }
 
 .upload-area {
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 50%;
-  border: 1px dashed #b9c6d8;
-  padding: 1rem;
-}
-
-.local-preview {
-  display: grid;
-  gap: 0.8rem;
-  margin-top: 1rem;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 50%;
-}
-
-.inline-results {
-  margin-top: 1rem;
-  justify-items: center;
-}
-
-.inline-result-card {
-  background: #fff;
-  border: 1px solid #d8dee8;
-  padding: 0.4rem;
-}
-
-.inline-tags {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.45rem;
+  justify-content: center;
 }
 
-.inline-tags button {
-  background: #eef5ff;
-  border: 0;
-  color: #0f4c81;
+.upload-drop {
+  align-items: center;
+  border: 1px dashed #b9c6d8;
   cursor: pointer;
-  font-size: 0.78rem;
-  padding: 0.2rem 0.45rem;
+  display: flex;
+  justify-content: center;
+  max-width: 50%;
+  min-height: 180px;
+  padding: 1rem;
+  width: 100%;
+}
+
+.upload-drop input {
+  display: none;
+}
+
+.local-preview-block {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 50%;
+}
+
+.local-preview-image {
+  height: 300px;
 }
 
 .error-text {
@@ -555,13 +544,15 @@ watch(
 }
 
 @media (max-width: 1700px) {
-  .sample-grid {
+  .sample-grid,
+  .inline-results {
     grid-template-columns: repeat(4, 320px);
   }
 }
 
 @media (max-width: 1360px) {
-  .sample-grid {
+  .sample-grid,
+  .inline-results {
     grid-template-columns: repeat(3, 320px);
   }
 }
@@ -571,8 +562,8 @@ watch(
     width: 100%;
   }
 
-  .upload-area,
-  .local-preview {
+  .upload-drop,
+  .local-preview-block {
     max-width: 100%;
   }
 
@@ -580,13 +571,15 @@ watch(
     grid-template-columns: 1fr;
   }
 
-  .sample-grid {
+  .sample-grid,
+  .inline-results {
     grid-template-columns: repeat(2, minmax(0, 320px));
   }
 }
 
 @media (max-width: 700px) {
-  .sample-grid {
+  .sample-grid,
+  .inline-results {
     grid-template-columns: minmax(0, 320px);
   }
 }
