@@ -223,13 +223,17 @@ watch(
 
 .tab-row {
   display: grid;
-  gap: 0.5rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 0 1rem 1rem;
 }
 
 .tab-row .button {
+  border-radius: 0;
+  font-size: 0.92rem;
   justify-content: center;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.4rem;
   width: 100%;
 }
 
@@ -314,6 +318,12 @@ watch(
   .book-columns {
     grid-template-columns: minmax(0, 1fr);
     height: auto;
+  }
+
+  .tab-row .button {
+    font-size: 0.82rem;
+    min-height: 2.1rem;
+    padding: 0.3rem 0.2rem;
   }
 
   .tab-panel {

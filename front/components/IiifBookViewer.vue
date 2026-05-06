@@ -1393,9 +1393,9 @@ onBeforeUnmount(() => {
 }
 
 .iiif-control-zoom {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   max-width: calc(100% - 1rem);
   opacity: 0.8;
   position: absolute;
@@ -1418,6 +1418,11 @@ onBeforeUnmount(() => {
   align-items: center;
   display: inline-flex;
   justify-content: center;
+  margin: 0;
+  min-height: 2.6rem;
+  min-width: 0;
+  padding: 0;
+  width: 100%;
 }
 
 .icon-button .mdi,
@@ -1762,7 +1767,7 @@ onBeforeUnmount(() => {
   }
 
   .iiif-control-zoom {
-    width: auto;
+    width: min(250px, calc(100% - 1rem));
   }
 
   .iiif-control-group {
