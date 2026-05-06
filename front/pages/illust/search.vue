@@ -6,7 +6,6 @@ const migration = useRouteMigration('illustsearchres');
 const { asStringArray } = useQueryParams();
 
 const keywords = computed(() => asStringArray(route.query.keyword));
-const imageId = computed(() => String(route.query.image || ''));
 const imageUrl = computed(() => String(route.query.imageurl || ''));
 const keyword2vec = computed(() => String(route.query.keyword2vec || ''));
 

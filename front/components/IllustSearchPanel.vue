@@ -20,7 +20,6 @@ const {
   getIllustration,
   getRandomIllustrationsWithFacet,
   searchIllustrationsByFeature,
-  searchIllustrationsByTextFeature,
 } = useSearchApi();
 
 const activeTab = ref<'sample' | 'metadata' | 'local' | 'url' | 'words'>(props.initialTab || 'sample');
@@ -32,7 +31,11 @@ const localImage = ref('');
 const localResults = ref<SearchResult<Illustration> | null>(null);
 const localLoading = ref(false);
 const localError = ref('');
+const urlResults = ref<SearchResult<Illustration> | null>(null);
+const urlLoading = ref(false);
+const urlError = ref('');
 const selectedSample = ref<Illustration | null>(props.qillust || null);
+const cropModalActive = ref(false);
 
 watch(
   () => [props.initialKeyword, props.initialUrl, props.initialKeyword2vec, props.initialTab, props.qillust],
@@ -42,6 +45,8 @@ watch(
     keyword2vec.value = props.initialKeyword2vec || '';
     activeTab.value = props.initialTab || 'sample';
     selectedSample.value = props.qillust || null;
+    urlResults.value = null;
+    urlError.value = '';
   },
 );
 
@@ -73,6 +78,15 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => activeTab.value,
+  async (tab) => {
+    if (tab === 'sample' && !selectedSample.value && !sampleIllustrations.value.length) {
+      await loadDefaultIllustrations();
+    }
+  },
+);
+
 const openResultPage = async (query: Record<string, string | string[] | undefined>) => {
   await router.push({
     name: 'illustsearchres',
@@ -88,7 +102,7 @@ const searchBySample = async (illustration: Illustration) => {
 };
 
 const searchByKeyword = async (presetKeywords?: string[]) => {
-  const keywords = (presetKeywords || keyword.value.split(/[\s\u3000]+/).filter(Boolean));
+  const keywords = presetKeywords || keyword.value.split(/[\s\u3000]+/).filter(Boolean);
   if (!keywords.length) {
     $notify('検索キーワードを入力してください。', 'error');
     return;
@@ -98,15 +112,36 @@ const searchByKeyword = async (presetKeywords?: string[]) => {
 
 const searchByUrl = async () => {
   if (!targetUrl.value) {
-    $notify('画像 URL を入力してください。', 'error');
+    $notify('画像の URL を入力してください。', 'error');
     return;
   }
-  await openResultPage({ imageurl: targetUrl.value });
+  urlLoading.value = true;
+  urlError.value = '';
+  urlResults.value = null;
+  try {
+    const response = await fetch(String(runtimeConfig.public.imageFeaturesEndpoint), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ img_url: targetUrl.value }),
+    });
+    const payload = await response.json();
+    const features = payload?.body;
+    if (!features) {
+      urlError.value = 'エラーが発生しました。URL の形式を確認してください。';
+      return;
+    }
+    urlResults.value = await searchIllustrationsByFeature(features);
+  } catch (error) {
+    console.error(error);
+    urlError.value = 'エラーが発生しました。時間をおいて再試行してください。';
+  } finally {
+    urlLoading.value = false;
+  }
 };
 
 const searchByWords = async () => {
   if (!keyword2vec.value.trim()) {
-    $notify('言葉を入力してください。', 'error');
+    $notify('キーワードを入力してください。', 'error');
     return;
   }
   await openResultPage({ keyword2vec: keyword2vec.value.trim() });
@@ -134,15 +169,40 @@ const selectFile = (event: Event) => {
   reader.readAsDataURL(file);
 };
 
-const analyzeLocalImage = async () => {
+const createSearchImage = async (source: string, rect?: { x: number; y: number; width: number; height: number }) => {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const element = new Image();
+    element.onload = () => resolve(element);
+    element.onerror = reject;
+    element.src = source;
+  });
+
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  if (!context) return source;
+
+  canvas.width = 224;
+  canvas.height = 224;
+
+  if (rect) {
+    context.drawImage(image, rect.x, rect.y, rect.width, rect.height, 0, 0, 224, 224);
+  } else {
+    context.drawImage(image, 0, 0, image.width, image.height, 0, 0, 224, 224);
+  }
+
+  return canvas.toDataURL('image/jpeg');
+};
+
+const analyzeLocalImage = async (rect?: { x: number; y: number; width: number; height: number }) => {
   if (!localImage.value) return;
   localLoading.value = true;
   localError.value = '';
   try {
+    const searchImage = await createSearchImage(localImage.value, rect);
     const response = await fetch(String(runtimeConfig.public.imageFeaturesEndpoint), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ img_b64: localImage.value }),
+      body: JSON.stringify({ img_b64: searchImage }),
     });
     const payload = await response.json();
     const features = payload?.body;
@@ -163,6 +223,7 @@ const clearLocalImage = () => {
   localImage.value = '';
   localResults.value = null;
   localError.value = '';
+  cropModalActive.value = false;
 };
 
 const searchWithTag = async (illustration: Illustration, tag: string) => {
@@ -174,6 +235,28 @@ const searchWithTag = async (illustration: Illustration, tag: string) => {
 
 const topTags = (illustration: Illustration) => (
   illustration.graphictags?.slice().sort((a, b) => (b.confidence || 0) - (a.confidence || 0)).slice(0, 3) || []
+);
+
+const openCropModal = () => {
+  if (!localImage.value) return;
+  cropModalActive.value = true;
+};
+
+const cropSearch = async (rect: { x: number; y: number; width: number; height: number } | null) => {
+  cropModalActive.value = false;
+  if (rect) {
+    await analyzeLocalImage(rect);
+  }
+};
+
+watch(
+  () => [activeTab.value, targetUrl.value, props.initialTab],
+  async () => {
+    if (activeTab.value === 'url' && targetUrl.value && props.initialTab === 'url' && !urlResults.value && !urlLoading.value) {
+      await searchByUrl();
+    }
+  },
+  { immediate: true },
 );
 </script>
 
@@ -190,7 +273,9 @@ const topTags = (illustration: Illustration) => (
     </div>
 
     <section v-if="activeTab === 'sample'" class="panel-block">
-      <p class="guide" :class="{ 'is-hidden': selectedSample }">サンプルの中から検索したい画像を選んでください。似た図表を含む資料を検索します。</p>
+      <p class="guide" :class="{ 'is-hidden': selectedSample }">
+        サンプルの中から画像を選んでください。選んだ画像を含む資料や、さらに似た画像を検索できます。
+      </p>
       <div v-if="selectedSample" class="query-illustration">
         <IllustrationResultCard :illustration="selectedSample" compact />
       </div>
@@ -206,19 +291,19 @@ const topTags = (illustration: Illustration) => (
     </section>
 
     <section v-else-if="activeTab === 'metadata'" class="panel-block">
-      <p class="guide">検索したいキーワードを入力してください。関連する資料の画像を検索できます。</p>
+      <p class="guide">検索したいキーワードを入力してください。表示された関連資料の画像から検索できます。</p>
       <form class="search-form" @submit.prevent="searchByKeyword()">
         <div class="search-input-row">
           <input v-model="keyword" class="input" type="text" autocomplete="off">
           <button class="button" type="submit">検索</button>
         </div>
         <div class="preset-row">
-          <span>キーワード例</span>
-          <button type="button" @click="searchByKeyword(['肖像'])">肖像</button>
-          <button type="button" @click="searchByKeyword(['動物'])">動物</button>
-          <button type="button" @click="searchByKeyword(['風景'])">風景</button>
-          <button type="button" @click="searchByKeyword(['植物'])">植物</button>
-          <button type="button" @click="searchByKeyword(['古地図'])">古地図</button>
+          <span>キーワード例:</span>
+          <button type="button" @click="searchByKeyword(['楽面'])">楽面</button>
+          <button type="button" @click="searchByKeyword(['友禅'])">友禅</button>
+          <button type="button" @click="searchByKeyword(['造船'])">造船</button>
+          <button type="button" @click="searchByKeyword(['下絵'])">下絵</button>
+          <button type="button" @click="searchByKeyword(['十姉妹'])">十姉妹</button>
         </div>
       </form>
     </section>
@@ -231,6 +316,7 @@ const topTags = (illustration: Illustration) => (
         <img :src="localImage" alt="">
         <div class="local-actions">
           <button class="button" type="button" @click="analyzeLocalImage">解析して検索</button>
+          <button class="button" type="button" @click="openCropModal">画像の一部から検索する</button>
           <button class="button is-secondary" type="button" @click="clearLocalImage">クリア</button>
         </div>
       </div>
@@ -246,6 +332,7 @@ const topTags = (illustration: Illustration) => (
           </div>
         </article>
       </div>
+      <RectEditorModal v-if="cropModalActive" :image-src="localImage" @close="cropSearch" />
     </section>
 
     <section v-else-if="activeTab === 'url'" class="panel-block">
@@ -256,10 +343,21 @@ const topTags = (illustration: Illustration) => (
           <button class="button" type="submit">検索</button>
         </div>
       </form>
+      <p v-if="urlLoading" class="muted">画像を解析しています...</p>
+      <p v-else-if="urlError" class="error-text">{{ urlError }}</p>
+      <div v-else-if="urlResults?.list?.length" class="sample-grid inline-results">
+        <IllustrationResultCard
+          v-for="item in urlResults.list"
+          :key="item.id"
+          :illustration="item"
+          @search="openResultPage({ image: $event.id })"
+          @search-tag="searchWithTag($event.illustration, $event.tag)"
+        />
+      </div>
     </section>
 
     <section v-else class="panel-block">
-      <p class="guide">探したい画像をイメージして、言葉を入力してください。</p>
+      <p class="guide">検索したい画像をイメージして、言葉を入力してください。</p>
       <form class="search-form" @submit.prevent="searchByWords">
         <div class="search-input-row">
           <input v-model="keyword2vec" class="input" type="text" autocomplete="off">
@@ -273,6 +371,7 @@ const topTags = (illustration: Illustration) => (
 <style scoped>
 .page-title {
   margin-bottom: 1rem;
+  text-align: center;
 }
 
 .tab-row {
@@ -303,8 +402,10 @@ const topTags = (illustration: Illustration) => (
 
 .guide {
   color: #4b5563;
+  font-size: 0.9rem;
   line-height: 1.7;
   margin: 0 0 0.9rem;
+  text-align: center;
 }
 
 .guide.is-hidden {
@@ -314,7 +415,8 @@ const topTags = (illustration: Illustration) => (
 .sample-grid {
   display: grid;
   gap: 0.9rem;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(5, 250px);
+  justify-content: center;
 }
 
 .sample-card,
@@ -323,13 +425,16 @@ const topTags = (illustration: Illustration) => (
   border: 1px solid #d8dee8;
   cursor: pointer;
   padding: 0.4rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
 }
 
 .sample-card img,
 .image-only img,
 .local-preview img {
   display: block;
+  height: 180px;
   max-width: 100%;
+  object-fit: contain;
   width: 100%;
 }
 
@@ -340,6 +445,21 @@ const topTags = (illustration: Illustration) => (
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-top: 0.9rem;
+}
+
+.reload-row,
+.query-illustration {
+  justify-content: center;
+}
+
+.query-illustration {
+  display: flex;
+}
+
+.search-form {
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
 }
 
 .search-input-row {
@@ -357,6 +477,9 @@ const topTags = (illustration: Illustration) => (
 }
 
 .upload-area {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 50%;
   border: 1px dashed #b9c6d8;
   padding: 1rem;
 }
@@ -365,11 +488,14 @@ const topTags = (illustration: Illustration) => (
   display: grid;
   gap: 0.8rem;
   margin-top: 1rem;
-  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 50%;
 }
 
 .inline-results {
   margin-top: 1rem;
+  justify-items: center;
 }
 
 .inline-result-card {
@@ -396,11 +522,48 @@ const topTags = (illustration: Illustration) => (
 
 .error-text {
   color: #b3261e;
+  text-align: center;
+}
+
+.muted {
+  color: #4b5563;
+  text-align: center;
+}
+
+@media (max-width: 1500px) {
+  .sample-grid {
+    grid-template-columns: repeat(4, 250px);
+  }
+}
+
+@media (max-width: 1180px) {
+  .sample-grid {
+    grid-template-columns: repeat(3, 250px);
+  }
 }
 
 @media (max-width: 760px) {
+  .search-form {
+    width: 100%;
+  }
+
+  .upload-area,
+  .local-preview {
+    max-width: 100%;
+  }
+
   .search-input-row {
     grid-template-columns: 1fr;
+  }
+
+  .sample-grid {
+    grid-template-columns: repeat(2, minmax(0, 250px));
+  }
+}
+
+@media (max-width: 560px) {
+  .sample-grid {
+    grid-template-columns: minmax(0, 250px);
   }
 }
 </style>

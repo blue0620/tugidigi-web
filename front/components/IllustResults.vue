@@ -19,6 +19,10 @@ const hasKeyword = computed(() => {
   const value = route.query.keyword;
   return Array.isArray(value) ? value.length > 0 : Boolean(value);
 });
+const hasImageUrl = computed(() => {
+  const value = route.query.imageurl;
+  return Array.isArray(value) ? value.length > 0 : Boolean(value);
+});
 const facets = computed(() => illustrationResult.value?.facets || []);
 const querySignature = computed(() => JSON.stringify(route.query));
 
@@ -42,6 +46,13 @@ const reload = async () => {
   error.value = '';
 
   try {
+    if (hasImageUrl.value) {
+      illustrationResult.value = null;
+      bookResult.value = null;
+      qillust.value = null;
+      return;
+    }
+
     if (hasKeyword.value) {
       const books = await searchMetaBooks(route.query, {
         from: String(from.value),
@@ -51,18 +62,19 @@ const reload = async () => {
       bookResult.value = books;
       illustrationResult.value = null;
       qillust.value = null;
-    } else {
-      const illustrations = await searchIllustrations(route.query, {
-        from: String(from.value),
-        size: String(size.value),
-        sort: sort.value,
-      });
-      illustrationResult.value = illustrations;
-      bookResult.value = null;
-
-      const imageId = String(route.query.image || '');
-      qillust.value = imageId ? await getIllustration(imageId) : null;
+      return;
     }
+
+    const illustrations = await searchIllustrations(route.query, {
+      from: String(from.value),
+      size: String(size.value),
+      sort: sort.value,
+    });
+    illustrationResult.value = illustrations;
+    bookResult.value = null;
+
+    const imageId = String(route.query.image || '');
+    qillust.value = imageId ? await getIllustration(imageId) : null;
   } catch (err) {
     console.error(err);
     error.value = '検索結果を取得できませんでした。';
@@ -149,12 +161,13 @@ const bookKeywords = computed(() => {
   <section class="result-panel">
     <div v-if="loading" class="panel muted">検索中です。しばらくお待ちください。</div>
     <div v-else-if="error" class="panel error-text">{{ error }}</div>
+    <div v-else-if="hasImageUrl"></div>
 
     <template v-else-if="illustrationResult">
       <div v-if="!illustrationResult.hit" class="panel muted no-hit">該当する画像はありませんでした。</div>
       <template v-else>
         <nav class="search-nav">
-          <div class="left-meta">{{ illustrationResult.hit.toLocaleString() }} 件</div>
+          <div class="left-meta">{{ illustrationResult.hit.toLocaleString() }}件</div>
           <div class="right-meta">
             <SearchPagination :total="illustrationResult.hit" :from="from" :size="size" @change="updateQuery({ from: $event })" />
             <SearchControls :size="size" :sort="sort" @update="updateControls" />
@@ -196,7 +209,7 @@ const bookKeywords = computed(() => {
 
     <template v-else-if="bookResult">
       <nav v-if="bookResult.hit" class="search-nav">
-        <div class="left-meta">{{ bookResult.hit.toLocaleString() }} 件</div>
+        <div class="left-meta">{{ bookResult.hit.toLocaleString() }}件</div>
         <div class="right-meta">
           <SearchPagination :total="bookResult.hit" :from="from" :size="size" @change="updateQuery({ from: $event })" />
           <SearchControls :size="size" @update="updateControls" />
@@ -221,6 +234,10 @@ const bookKeywords = computed(() => {
 <style scoped>
 .result-panel {
   margin-top: 1rem;
+}
+
+.panel {
+  padding: 1rem 0;
 }
 
 .search-nav {
@@ -252,8 +269,10 @@ const bookKeywords = computed(() => {
 }
 
 .query-illust {
+  display: flex;
+  justify-content: center;
   margin-bottom: 1rem;
-  max-width: 220px;
+  max-width: 250px;
 }
 
 .masonry-grid {
@@ -264,6 +283,10 @@ const bookKeywords = computed(() => {
 .masonry-grid :deep(.illust-card) {
   break-inside: avoid;
   margin-bottom: 15px;
+}
+
+.result-body {
+  background: #fff;
 }
 
 .book-result-list {

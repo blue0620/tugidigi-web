@@ -62,10 +62,12 @@ const bookLink = computed(() => ({
 
 <style scoped>
 .illust-card {
+  background: #fff;
   display: grid;
   gap: 0.45rem;
   height: 250px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
   text-overflow: ellipsis;
   white-space: nowrap;
   width: 250px;
@@ -96,6 +98,7 @@ const bookLink = computed(() => ({
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
+  padding: 0 0.35rem;
 }
 
 .tag-buttons button {
@@ -113,6 +116,7 @@ const bookLink = computed(() => ({
   display: flex;
   gap: 0;
   height: 1.25rem;
+  padding: 0 0.2rem 0.2rem;
 }
 
 .action-link {
