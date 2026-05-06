@@ -192,7 +192,7 @@ watch(
 
 .book-columns {
   display: grid;
-  grid-template-columns: minmax(260px, 28rem) minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 23rem) minmax(0, 1fr);
   height: calc(100vh - 75px);
   max-width: 100vw;
   overflow: hidden;

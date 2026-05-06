@@ -1073,7 +1073,27 @@ watch(() => [currentPage.value, props.keywords?.join('|') || '', route.fullPath,
 onMounted(async () => {
   await initMap();
   onKeydown = (event: KeyboardEvent) => {
-    if (event.key === 'Escape' && full.value) changeFull();
+    const target = event.target as HTMLElement | null;
+    const tagName = target?.tagName?.toLowerCase() || '';
+    const isTypingTarget = tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target?.isContentEditable;
+
+    if (event.key === 'Escape' && full.value) {
+      changeFull();
+      return;
+    }
+
+    if (isTypingTarget) return;
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      handleLeftButton();
+      return;
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      handleRightButton();
+    }
   };
   document.addEventListener('keydown', onKeydown);
   await loadManifest();
