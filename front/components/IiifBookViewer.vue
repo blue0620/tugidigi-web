@@ -1,6 +1,14 @@
 ﻿<script setup lang="ts">
 import 'leaflet/dist/leaflet.css';
 import type { Book, Page } from '~/types/domain';
+import { checkTagPermission, setTagPermission } from '~/utils/mypage-storage';
+import {
+  deleteBookIdByTagName,
+  pushBookIdByTagName,
+  putTagObject,
+  retrieveAllObjectByBookId,
+  retrieveAllTagNames,
+} from '~/utils/mypage-indexeddb';
 
 interface IiifService {
   '@id'?: string;
@@ -86,6 +94,7 @@ const copyMode = ref(false);
 const tableMode = ref(false);
 const isCopyModalActive = ref(false);
 const isDownloadModalActive = ref(false);
+const isTaggingModalActive = ref(false);
 const selectAreaFlag = ref(false);
 const mouseupedInOutside = ref(false);
 const isAreaSelecting = ref(false);
@@ -97,6 +106,9 @@ const tableHtml = ref('');
 const tableFormat = ref<'HTML' | 'TSV'>('HTML');
 const tableRecLoading = ref(false);
 const notificationMessage = ref('');
+const allTagNames = ref<string[]>([]);
+const attachedTagNames = ref<string[]>([]);
+const tagAddInput = ref('');
 
 const selectedCoordinates = ref<SelectedCoordinates>({
   minX: 0,
@@ -171,6 +183,12 @@ const labels = {
   textDisplay: '\u30c6\u30ad\u30b9\u30c8\u8868\u793a',
   textCopy: '\u30c6\u30ad\u30b9\u30c8\u30b3\u30d4\u30fc',
   tableExtract: '\u8868\u62bd\u51fa',
+  tag: '\u30bf\u30b0',
+  attachTag: '\u30bf\u30b0\u3092\u4ed8\u4e0e\u3059\u308b',
+  attach: '\u4ed8\u4e0e',
+  tagPermission:
+    '\u30bf\u30b0\u60c5\u5831\u306fWeb\u30d6\u30e9\u30a6\u30b6\u306eIndexedDB\u306b\u4fdd\u5b58\u3055\u308c\u307e\u3059\u3002\u5171\u6709PC\u3067\u306f\u3001\u4ed6\u306e\u5229\u7528\u8005\u306b\u3082\u8868\u793a\u3055\u308c\u307e\u3059\u306e\u3067\u3001\u305d\u306e\u70b9\u3092\u3054\u7406\u89e3\u306e\u3046\u3048\u4f7f\u7528\u3057\u3066\u304f\u3060\u3055\u3044\u3002',
+  noResults: 'No results found',
   rubySize: '\u30eb\u30d3\u30b5\u30a4\u30ba',
   previous: '\u524d\u3078',
   next: '\u6b21\u3078',
@@ -199,6 +217,12 @@ const directionLabel = computed(() => {
   return labels.direction;
 });
 const directionValue = computed(() => (leftOpen.value ? labels.openRight : labels.openLeft));
+const unattachedTags = computed(() => allTagNames.value.filter((tagName) => !attachedTagNames.value.includes(tagName)));
+const filteredTagNameArray = computed(() => {
+  const keyword = tagAddInput.value.trim().toLowerCase();
+  if (!keyword) return allTagNames.value;
+  return allTagNames.value.filter((tagName) => tagName.toLowerCase().includes(keyword));
+});
 const downloadLink = computed(() => {
   if (!props.book?.id) return '';
   return `${runtimeConfig.app.baseURL}api/book/download/${props.book.id}?page=${currentDownloadPage.value}`;
@@ -244,6 +268,64 @@ const showNotification = (message: string) => {
   notificationTimer = window.setTimeout(() => {
     notificationMessage.value = '';
   }, 2200);
+};
+
+const refreshTagState = async () => {
+  if (!props.book?.id) return;
+  allTagNames.value = await retrieveAllTagNames();
+  attachedTagNames.value = (await retrieveAllObjectByBookId(props.book.id)).map((tag) => tag.tagName);
+};
+
+const tagButtonHandler = async () => {
+  isTaggingModalActive.value = true;
+  if (!checkTagPermission()) {
+    const confirmed = window.confirm(labels.tagPermission);
+    if (!confirmed) {
+      isTaggingModalActive.value = false;
+      return;
+    }
+    setTagPermission();
+  }
+  await refreshTagState();
+};
+
+const tagClickedHandler = async (tagName: string) => {
+  if (!props.book?.id || !tagName) return;
+
+  if (attachedTagNames.value.includes(tagName)) {
+    await deleteBookIdByTagName({
+      bookId: props.book.id,
+      tagName,
+    });
+  } else {
+    await pushBookIdByTagName({
+      bookId: props.book.id,
+      tagName,
+    });
+  }
+
+  await refreshTagState();
+};
+
+const tagAddHandler = async () => {
+  const tagName = tagAddInput.value.trim();
+  if (!props.book?.id || !tagName) return;
+
+  const currentAllTagNames = await retrieveAllTagNames();
+  if (currentAllTagNames.includes(tagName)) {
+    await pushBookIdByTagName({
+      bookId: props.book.id,
+      tagName,
+    });
+  } else {
+    await putTagObject({
+      tagName,
+      bookIds: [props.book.id],
+    });
+  }
+
+  tagAddInput.value = '';
+  await refreshTagState();
 };
 
 const applyPage = (value: number) => {
@@ -971,6 +1053,13 @@ watch(() => props.book?.leftopen, () => {
   resolveDirection();
 });
 
+watch(() => props.book?.id, async (bookId) => {
+  if (!bookId) return;
+  if (isTaggingModalActive.value) {
+    await refreshTagState();
+  }
+});
+
 watch(() => props.manifestUrl, () => {
   loadManifest();
 });
@@ -1018,6 +1107,15 @@ onBeforeUnmount(() => {
         <span class="mdi mdi-chevron-double-right" aria-hidden="true"></span>
       </button>
       <div class="iiif-control-zoom buttons has-addons">
+        <button
+          v-show="!div"
+          class="button is-large icon-button"
+          type="button"
+          :title="labels.tag"
+          @click="tagButtonHandler()"
+        >
+          <span class="mdi mdi-tag" aria-hidden="true"></span>
+        </button>
         <button class="button is-large icon-button" type="button" :title="labels.zoomOut" @click="map?.zoomOut()">
           <span class="mdi mdi-magnify-minus" aria-hidden="true"></span>
         </button>
@@ -1154,6 +1252,55 @@ onBeforeUnmount(() => {
           <feColorMatrix type="matrix" :values="colors" />
         </filter>
       </svg>
+    </div>
+    <div v-if="isTaggingModalActive" class="modal-backdrop" @click.self="isTaggingModalActive = false">
+      <div class="modal-card tag-modal">
+        <h3>{{ labels.tag }}</h3>
+        <p v-if="book">{{ book.title }} にタグを付与します。</p>
+        <div class="tag-add-row">
+          <input
+            v-model="tagAddInput"
+            class="input is-small tag-input"
+            type="text"
+            list="viewer-tag-options"
+            @keydown.enter.prevent="tagAddHandler()"
+          >
+          <button class="button is-small" type="button" @click="tagAddHandler()">{{ labels.attach }}</button>
+        </div>
+        <datalist id="viewer-tag-options">
+          <option v-for="tagName in filteredTagNameArray" :key="tagName" :value="tagName"></option>
+        </datalist>
+        <div class="tag-section">
+          <div class="tag-chip-row">
+            <button
+              v-for="tagName in attachedTagNames"
+              :key="`attached-${tagName}`"
+              class="tag-chip is-attached"
+              type="button"
+              @click="tagClickedHandler(tagName)"
+            >
+              {{ tagName }}
+            </button>
+          </div>
+        </div>
+        <div class="tag-section">
+          <div class="tag-chip-row">
+            <button
+              v-for="tagName in unattachedTags"
+              :key="`unattached-${tagName}`"
+              class="tag-chip"
+              type="button"
+              @click="tagClickedHandler(tagName)"
+            >
+              {{ tagName }}
+            </button>
+          </div>
+          <p v-if="!attachedTagNames.length && !unattachedTags.length" class="tag-empty">{{ labels.noResults }}</p>
+        </div>
+        <div class="modal-actions">
+          <button class="button is-small" type="button" @click="isTaggingModalActive = false">{{ labels.close }}</button>
+        </div>
+      </div>
     </div>
     <div v-if="isDownloadModalActive" class="modal-backdrop" @click.self="isDownloadModalActive = false">
       <div class="modal-card">
@@ -1538,6 +1685,51 @@ onBeforeUnmount(() => {
 .copy-modal {
   max-height: 80vh;
   overflow: auto;
+}
+
+.tag-modal {
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.tag-add-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tag-input {
+  flex: 1 1 auto;
+}
+
+.tag-section {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.tag-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag-chip {
+  background: #1f2937;
+  border: 1px solid #1f2937;
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.35rem 0.75rem;
+}
+
+.tag-chip.is-attached {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+.tag-empty {
+  color: #64748b;
+  margin: 0;
 }
 
 .copy-content {

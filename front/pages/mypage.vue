@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import HistoryPanel from '~/components/mypage/HistoryPanel.vue';
+import TaggedBooksPanel from '~/components/mypage/TaggedBooksPanel.vue';
 import {
   checkHistoryPermission,
   isViewedBookHistoryDisabled,

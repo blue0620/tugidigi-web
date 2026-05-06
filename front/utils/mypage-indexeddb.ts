@@ -79,6 +79,39 @@ export const retrieveAllObjectByBookId = async (bookId: string): Promise<Tag[]> 
   return IDBRequestPromise(store.index('bookIdIndex').getAll(IDBKeyRange.only(bookId)));
 };
 
+export const pushBookIdByTagName = async ({
+  bookId,
+  tagName,
+}: {
+  bookId: string;
+  tagName: string;
+}): Promise<Tag['tagName'] | null> => {
+  const tag = await retrieveObjectByTagName(tagName);
+  if (!tag || tag.bookIds.includes(bookId)) return null;
+
+  tag.bookIds.push(bookId);
+  return putTagObject(tag);
+};
+
+export const deleteBookIdByTagName = async ({
+  bookId,
+  tagName,
+}: {
+  bookId: string;
+  tagName: string;
+}): Promise<Tag['tagName'] | null> => {
+  const tag = await retrieveObjectByTagName(tagName);
+  if (!tag || !tag.bookIds.includes(bookId)) return null;
+
+  tag.bookIds = tag.bookIds.filter((taggedBookId) => taggedBookId !== bookId);
+  if (!tag.bookIds.length) {
+    await deleteTagObject(tag);
+    return null;
+  }
+
+  return putTagObject(tag);
+};
+
 export const retrieveAllTagNames = async (): Promise<string[]> => {
   const store = await getTagsAndBooksObjectStore();
   return IDBRequestPromise(store.getAllKeys());
