@@ -3,13 +3,16 @@ const appConfig = useAppConfig();
 const { url } = useAppUrl();
 const route = useRoute();
 const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
-const navItems = [
-  { to: '/', label: 'ホーム' },
-  { to: '/fulltext', label: '全文検索' },
-  { to: '/illust', label: '画像検索' },
-  { to: '/mypage', label: 'マイページ' },
-];
+const navItems = computed(() => [
+  { to: '/', label: t('ホーム', 'Home') },
+  { to: '/fulltext', label: t('全文検索', 'Keyword search') },
+  { to: '/illust', label: t('画像検索', 'Illustration search') },
+  { to: '/mypage', label: t('マイページ', 'My Page') },
+]);
+const brandLabel = computed(() => ($appRuntime.lang.value === 'ja' ? appConfig.service.nameJa : appConfig.service.name));
+const textModeLabel = computed(() => t('テキストモード', 'Text mode'));
 
 const isOpen = ref(false);
 const bookId = computed(() => (route.name === 'book' ? String(route.params.id || '') : ''));
@@ -27,7 +30,7 @@ watch(
   <header class="app-header">
     <NuxtLink class="brand" to="/">
       <img :src="url('assets/images/logo.svg')" alt="" width="28" height="28">
-      <span>{{ appConfig.service.nameJa }}</span>
+      <span>{{ brandLabel }}</span>
     </NuxtLink>
 
     <button class="menu-button" type="button" :aria-expanded="isOpen" @click="isOpen = !isOpen">
@@ -42,7 +45,7 @@ watch(
         class="nav-link"
         :href="`https://lab.ndl.go.jp/dl-text/book?pid=${bookId}&page=${page}`"
       >
-        textmode
+        {{ textModeLabel }}
       </a>
       <NuxtLink v-for="item in navItems" :key="item.to" class="nav-link" :to="item.to">
         {{ item.label }}
