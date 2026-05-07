@@ -241,13 +241,19 @@ const changeIllustrationPage = (direction: 'prev' | 'next') => {
   align-items: center;
   display: flex;
   gap: 0.5rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .illustration-strip {
   display: grid;
-  gap: 0.6rem;
-  grid-template-columns: repeat(4, minmax(0, 250px));
+  flex: 1 1 auto;
+  gap: 0.25rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
   padding-bottom: 0.2rem;
+  width: 100%;
 }
 
 .carousel-button {
@@ -258,6 +264,7 @@ const changeIllustrationPage = (direction: 'prev' | 'next') => {
   color: #4b5563;
   cursor: pointer;
   display: inline-flex;
+  flex: 0 0 2rem;
   height: 2rem;
   justify-content: center;
   padding: 0;
@@ -274,11 +281,12 @@ const changeIllustrationPage = (direction: 'prev' | 'next') => {
 }
 
 .illustration-chip {
-  height: 168px;
+  height: 156px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 250px;
+  white-space: normal;
+  width: 100%;
 }
 
 .chip-image {
@@ -293,7 +301,7 @@ const changeIllustrationPage = (direction: 'prev' | 'next') => {
 .chip-image img {
   background: #f6f7fb;
   display: block;
-  height: 92px;
+  height: 88px;
   object-fit: contain;
   width: 100%;
 }
@@ -302,9 +310,11 @@ const changeIllustrationPage = (direction: 'prev' | 'next') => {
   align-items: center;
   background: rgba(255, 255, 255, 0.92);
   display: flex;
-  gap: 0;
-  height: 1.25rem;
+  gap: 0.05rem;
+  justify-content: space-between;
+  min-height: 1.25rem;
   margin-top: 0.2rem;
+  overflow: hidden;
   width: 100%;
 }
 
@@ -316,21 +326,21 @@ const changeIllustrationPage = (direction: 'prev' | 'next') => {
   color: #4b5563;
   cursor: pointer;
   display: inline-flex;
-  flex: 1 1 0;
+  flex: 0 1 auto;
   font-family: inherit;
-  font-size: 0.76rem;
-  gap: 0.18rem;
+  font-size: 0.68rem;
+  gap: 0.06rem;
   justify-content: center;
   line-height: 1.1;
   min-width: 0;
-  padding: 0;
+  padding: 0 0.02rem;
   text-align: center;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .chip-action .mdi {
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   line-height: 1;
 }
 
