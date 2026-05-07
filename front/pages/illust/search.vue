@@ -2,7 +2,6 @@
 definePageMeta({ name: 'illustsearchres' });
 
 const route = useRoute();
-const migration = useRouteMigration('illustsearchres');
 const { asStringArray } = useQueryParams();
 const { $appRuntime } = useNuxtApp();
 const t = (ja: string, en: string) => $appRuntime.t(ja, en);
@@ -25,7 +24,6 @@ const initialTab = computed<'sample' | 'metadata' | 'local' | 'url' | 'words'>((
       <div>
         <h1>{{ t('画像検索', 'Illustration search') }}</h1>
       </div>
-      <MigrationStatus :status="migration.status" />
     </div>
 
     <section class="panel">

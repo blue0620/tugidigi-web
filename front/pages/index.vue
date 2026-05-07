@@ -1,7 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ name: 'top' });
 
-const migration = useRouteMigration('top');
 const appConfig = useAppConfig();
 const { $appRuntime } = useNuxtApp();
 
@@ -25,7 +24,6 @@ const ocrDatasetUrl = computed(() => (
       <div>
         <h1>{{ serviceName }}</h1>
       </div>
-      <MigrationStatus :status="migration.status" />
     </div>
 
     <section class="top-actions">

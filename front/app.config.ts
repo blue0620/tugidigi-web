@@ -5,15 +5,4 @@ export default defineAppConfig({
     domain: 'https://lab.ndl.go.jp',
     headerKey: 'hsq',
   },
-  migration: {
-    routes: {
-      top: 'migrated',
-      fulltextsearch: 'migrated',
-      illustsearch: 'migrated',
-      illustsearchres: 'migrated',
-      book: 'migrated',
-      mypage: 'migrated',
-      'legacy-catch-all': 'legacy',
-    },
-  },
 });

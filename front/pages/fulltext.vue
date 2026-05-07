@@ -5,7 +5,6 @@ definePageMeta({ name: 'fulltextsearch' });
 
 const route = useRoute();
 const router = useRouter();
-const migration = useRouteMigration('fulltextsearch');
 const { asStringArray, normalizeQuery } = useQueryParams();
 const { $notify, $appRuntime } = useNuxtApp();
 const t = (ja: string, en: string) => $appRuntime.t(ja, en);
@@ -110,7 +109,6 @@ const search = async () => {
           {{ t('2文字以上のキーワードを入れてください。目次と本文からキーワードを含む資料を検索します。', 'Please enter at least 2 characters. Search materials containing your keywords in the TOC and full text.') }}
         </p>
       </div>
-      <MigrationStatus :status="migration.status" />
     </div>
 
     <form class="search-box" @submit.prevent="search">

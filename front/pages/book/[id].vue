@@ -5,7 +5,6 @@ definePageMeta({ name: 'book' });
 
 const route = useRoute();
 const router = useRouter();
-const migration = useRouteMigration('book');
 const { $appRuntime } = useNuxtApp();
 const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
@@ -111,12 +110,10 @@ watch(
         <template v-if="book">
           <div class="meta-header">
             <h1 class="book-title">{{ book.title }}{{ book.volume ? ` ${book.volume}` : '' }}</h1>
-            <MigrationStatus :status="migration.status" />
           </div>
         </template>
         <div v-else class="meta-header">
           <h1 class="book-title">{{ t('資料', 'Material') }} {{ id }}</h1>
-          <MigrationStatus :status="migration.status" />
         </div>
 
         <div v-if="loading" class="meta-status muted">{{ t('書誌情報を読み込み中...', 'Loading bibliographic information...') }}</div>
