@@ -489,14 +489,39 @@ const clearLayers = () => {
   });
 };
 
+const currentImageBounds = () => {
+  if (!map || !LRef || initialZoom == null || !imageWidth || !imageHeight) return null;
+  const southWest = map.unproject([0, imageHeight], initialZoom);
+  const northEast = map.unproject([imageWidth, 0], initialZoom);
+  return new LRef.LatLngBounds(southWest, northEast);
+};
+
 const fitBounds = () => {
+  if (map) {
+    map.invalidateSize();
+  }
+
   if (div.value && map && bounds) {
-    map.fitBounds(bounds, { animate: true });
+    map.fitBounds(bounds, { animate: false });
     return;
   }
+
+  const imageBounds = currentImageBounds();
+  if (map && imageBounds) {
+    map.fitBounds(imageBounds, { animate: false });
+    return;
+  }
+
   if (iiifLayer && typeof iiifLayer._fitBounds === 'function') {
     iiifLayer._fitBounds();
   }
+};
+
+const fitBoundsAfterLayout = async () => {
+  await nextTick();
+  window.requestAnimationFrame(() => {
+    fitBounds();
+  });
 };
 
 const ensureLeaflet = async () => {
@@ -974,7 +999,7 @@ const setInfo = async (infoUrl: string) => {
   clearTextAreaRectangles();
   clearSelectedAreaRectangle();
   map.setMaxZoom(Number.POSITIVE_INFINITY);
-  map.setMinZoom(0);
+  map.setMinZoom(-5);
   iiifLayer = (LRef as any).tileLayer.iiif(infoUrl, {});
   map.addLayer(iiifLayer);
   if (iiifLayer?._infoPromise) await iiifLayer._infoPromise;
@@ -1010,7 +1035,7 @@ const setCurrentIiifPage = async (pageNumber: number) => {
 
   await setInfo(infoUrl);
   await getInitialZoom(infoUrl);
-  fitBounds();
+  await fitBoundsAfterLayout();
   resolveDirection();
   if (props.book?.id) {
     await addKeywordMarkers(`${props.book.id}_${pageNumber}`);
@@ -1472,7 +1497,7 @@ onBeforeUnmount(() => {
 }
 
 .viewer {
-  height: calc(100vh - 120px);
+  height: 100%;
   margin: 0;
   max-width: 100%;
   min-width: 0;
