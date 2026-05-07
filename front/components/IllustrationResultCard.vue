@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Illustration } from '~/types/domain';
 import { illustrationCropUrl } from '~/utils/illustration-image';
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const props = defineProps<{
   illustration: Illustration;
@@ -29,7 +31,7 @@ const bookLink = computed(() => ({
   <article class="illust-card" :class="{ compact }">
     <button class="image-frame" type="button" @click="navigateTo(bookLink)">
       <img v-if="imageUrl" :src="imageUrl" alt="" loading="lazy">
-      <span v-else class="empty-image">No image</span>
+      <span v-else class="empty-image">{{ t('画像なし', 'No image') }}</span>
     </button>
 
     <div v-if="!compact" class="tag-buttons">

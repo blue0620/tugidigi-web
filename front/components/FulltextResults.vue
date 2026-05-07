@@ -8,7 +8,9 @@ const props = defineProps<{
 const route = useRoute();
 const router = useRouter();
 const { normalizeQuery } = useQueryParams();
+const { $appRuntime } = useNuxtApp();
 const { searchBooks, searchNgramBooks, getIllustrationsByIds, getIllustrationsByBook } = useSearchApi();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const result = ref<SearchResult<Book> | null>(null);
 const ngramResult = ref<SearchResult<Book> | null>(null);
@@ -55,7 +57,7 @@ const reload = async () => {
     result.value = response;
   } catch (err) {
     console.error(err);
-    error.value = '検索結果を取得できませんでした。';
+    error.value = t('検索結果を取得できませんでした。', 'Failed to load search results.');
     result.value = null;
   } finally {
     loading.value = false;
@@ -154,11 +156,11 @@ const openIllustrationSearch = async (illustration: Illustration) => {
     <div v-if="result" class="result-summary">
       <button class="summary-trigger" type="button" @click="toggleNgram">
         <span>{{ result.hit === 10000 ? '10,000+' : result.hit.toLocaleString() }}</span>
-        <span>件</span>
+        <span>{{ t('件', 'hits') }}</span>
       </button>
       <div v-if="showNgram" class="ngram-panel">
-        <p v-if="loadingNgram" class="muted">Ngram を読み込み中...</p>
-        <p v-else-if="!ngramResult?.facets?.[0]?.counts" class="muted">Ngram データはありません。</p>
+        <p v-if="loadingNgram" class="muted">{{ t('Ngram を読み込み中...', 'Loading n-gram...') }}</p>
+        <p v-else-if="!ngramResult?.facets?.[0]?.counts" class="muted">{{ t('Ngram データはありません。', 'No n-gram data.') }}</p>
         <NgramFacetViewer v-else :counts="ngramResult.facets[0].counts" />
       </div>
     </div>
@@ -170,13 +172,13 @@ const openIllustrationSearch = async (illustration: Illustration) => {
         :size="size"
         @change="updateQuery({ from: $event })"
       />
-      <span class="nav-label">表示件数</span>
+      <span class="nav-label">{{ t('表示件数', 'Results per page') }}</span>
       <SearchControls :size="size" :sort="sort" show-sort @update="updateControls" />
     </nav>
 
-    <p v-if="loading" class="muted">検索しています...</p>
+    <p v-if="loading" class="muted">{{ t('検索しています...', 'Searching...') }}</p>
     <p v-else-if="error" class="error-text">{{ error }}</p>
-    <p v-else-if="result && !result.list.length" class="muted no-hit">該当する資料はありませんでした。</p>
+    <p v-else-if="result && !result.list.length" class="muted no-hit">{{ t('該当する資料はありませんでした。', 'No matching materials were found.') }}</p>
 
     <div v-else-if="result" class="result-layout">
       <aside v-if="facets.length" class="facet-column">

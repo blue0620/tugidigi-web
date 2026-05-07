@@ -4,7 +4,9 @@ import type { Book, Illustration, SearchResult } from '~/types/domain';
 const route = useRoute();
 const router = useRouter();
 const { normalizeQuery } = useQueryParams();
+const { $appRuntime } = useNuxtApp();
 const { searchIllustrations, searchMetaBooks, getIllustrationsByIds, getIllustrationsByBook, getIllustration } = useSearchApi();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const illustrationResult = ref<SearchResult<Illustration> | null>(null);
 const bookResult = ref<SearchResult<Book> | null>(null);
@@ -77,7 +79,7 @@ const reload = async () => {
     qillust.value = imageId ? await getIllustration(imageId) : null;
   } catch (err) {
     console.error(err);
-    error.value = '検索結果を取得できませんでした。';
+    error.value = t('検索結果を取得できませんでした。', 'Failed to load search results.');
     illustrationResult.value = null;
     bookResult.value = null;
     qillust.value = null;
@@ -159,15 +161,15 @@ const bookKeywords = computed(() => {
 
 <template>
   <section class="result-panel">
-    <div v-if="loading" class="panel muted">検索中です。しばらくお待ちください。</div>
+    <div v-if="loading" class="panel muted">{{ t('検索中です。しばらくお待ちください。', 'Searching. Please wait a moment.') }}</div>
     <div v-else-if="error" class="panel error-text">{{ error }}</div>
     <div v-else-if="hasImageUrl"></div>
 
     <template v-else-if="illustrationResult">
-      <div v-if="!illustrationResult.hit" class="panel muted no-hit">該当する画像はありませんでした。</div>
+      <div v-if="!illustrationResult.hit" class="panel muted no-hit">{{ t('該当する画像はありませんでした。', 'No matching illustrations were found.') }}</div>
       <template v-else>
         <nav class="search-nav">
-          <div class="left-meta">{{ illustrationResult.hit.toLocaleString() }}件</div>
+          <div class="left-meta">{{ illustrationResult.hit.toLocaleString() }}{{ t('件', ' hits') }}</div>
           <div class="right-meta">
             <SearchPagination :total="illustrationResult.hit" :from="from" :size="size" @change="updateQuery({ from: $event })" />
             <SearchControls :size="size" :sort="sort" @update="updateControls" />
@@ -209,14 +211,14 @@ const bookKeywords = computed(() => {
 
     <template v-else-if="bookResult">
       <nav v-if="bookResult.hit" class="search-nav">
-        <div class="left-meta">{{ bookResult.hit.toLocaleString() }}件</div>
+        <div class="left-meta">{{ bookResult.hit.toLocaleString() }}{{ t('件', ' hits') }}</div>
         <div class="right-meta">
           <SearchPagination :total="bookResult.hit" :from="from" :size="size" @change="updateQuery({ from: $event })" />
           <SearchControls :size="size" @update="updateControls" />
         </div>
       </nav>
 
-      <div v-if="!bookResult.hit" class="panel muted no-hit">該当する資料はありませんでした。</div>
+      <div v-if="!bookResult.hit" class="panel muted no-hit">{{ t('該当する資料はありませんでした。', 'No matching materials were found.') }}</div>
       <div v-else class="book-result-list">
         <BookResultCard
           v-for="book in bookResult.list"

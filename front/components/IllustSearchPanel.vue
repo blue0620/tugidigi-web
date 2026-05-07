@@ -17,7 +17,8 @@ const route = useRoute();
 const router = useRouter();
 const runtimeConfig = useRuntimeConfig();
 const { normalizeQuery } = useQueryParams();
-const { $notify } = useNuxtApp();
+const { $notify, $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 const {
   getDefaultIllustrations,
   getIllustration,
@@ -54,13 +55,13 @@ watch(
   },
 );
 
-const tabItems: Array<{ key: SearchTab; label: string; icon: string }> = [
-  { key: 'sample', label: 'サンプル画像から', icon: 'mdi-image' },
-  { key: 'metadata', label: '資料のタイトルや目次から', icon: 'mdi-image-search' },
-  { key: 'local', label: '手元の画像から', icon: 'mdi-image-plus' },
-  { key: 'url', label: 'URLから', icon: 'mdi-link-variant' },
-  { key: 'words', label: '単語や文章から', icon: 'mdi-text-search' },
-];
+const tabItems = computed<Array<{ key: SearchTab; label: string; icon: string }>>(() => [
+  { key: 'sample', label: t('サンプル画像から', 'From sample images'), icon: 'mdi-image' },
+  { key: 'metadata', label: t('資料のタイトルや目次から', 'From titles or table of contents'), icon: 'mdi-image-search' },
+  { key: 'local', label: t('手元の画像から', 'From your image'), icon: 'mdi-image-plus' },
+  { key: 'url', label: t('URLから', 'From URL'), icon: 'mdi-link-variant' },
+  { key: 'words', label: t('単語や文章から', 'From words or sentences'), icon: 'mdi-text-search' },
+]);
 
 const loadDefaultSamples = async () => {
   try {
@@ -107,7 +108,7 @@ const searchBySample = async (illustration: Illustration) => {
 const searchByKeyword = async (presetKeywords?: string[]) => {
   const keywords = presetKeywords || keyword.value.split(/[\s\u3000]+/).filter(Boolean);
   if (!keywords.length) {
-    $notify('検索キーワードを入力してください。', 'error');
+    $notify(t('検索キーワードを入力してください。', 'Please enter search keywords.'), 'error');
     return;
   }
   await openResultPage({ keyword: keywords });
@@ -175,13 +176,13 @@ const analyzeLocalImage = async (rect?: CropRect) => {
     const payload = await response.json();
     const features = payload?.body;
     if (!features) {
-      localError.value = '画像を解析できませんでした。';
+      localError.value = t('画像を解析できませんでした。', 'Failed to analyze the image.');
       return;
     }
     localResults.value = await searchIllustrationsByFeature(features);
   } catch (error) {
     console.error(error);
-    localError.value = '画像検索に失敗しました。';
+    localError.value = t('画像検索に失敗しました。', 'Image search failed.');
   } finally {
     localLoading.value = false;
   }
@@ -209,7 +210,7 @@ const cropSearch = async (rect: CropRect | null) => {
 
 const searchByUrl = async () => {
   if (!targetUrl.value) {
-    $notify('画像の URL を入力してください。', 'error');
+    $notify(t('画像の URL を入力してください。', 'Please enter an image URL.'), 'error');
     return;
   }
   urlLoading.value = true;
@@ -224,13 +225,13 @@ const searchByUrl = async () => {
     const payload = await response.json();
     const features = payload?.body;
     if (!features) {
-      urlError.value = 'エラーが発生しました。URL の形式を確認してください。';
+      urlError.value = t('エラーが発生しました。URL の形式を確認してください。', 'An error occurred. Please check the URL format.');
       return;
     }
     urlResults.value = await searchIllustrationsByFeature(features);
   } catch (error) {
     console.error(error);
-    urlError.value = 'エラーが発生しました。時間をおいて再試行してください。';
+    urlError.value = t('エラーが発生しました。時間をおいて再試行してください。', 'An error occurred. Please try again later.');
   } finally {
     urlLoading.value = false;
   }
@@ -238,7 +239,7 @@ const searchByUrl = async () => {
 
 const searchByWords = async () => {
   if (!keyword2vec.value.trim()) {
-    $notify('単語や文章を入力してください。', 'error');
+    $notify(t('単語や文章を入力してください。', 'Please enter words or a sentence.'), 'error');
     return;
   }
   await openResultPage({ keyword2vec: keyword2vec.value.trim() });
@@ -268,7 +269,7 @@ watch(
 
 <template>
   <section class="illust-search-panel">
-    <h1 class="page-title">画像検索</h1>
+    <h1 class="page-title">{{ t('画像検索', 'Illustration search') }}</h1>
 
     <div class="tab-row">
       <button
@@ -285,7 +286,7 @@ watch(
 
     <section v-if="activeTab === 'sample'" class="panel-block">
       <p class="guide" :class="{ 'is-hidden': selectedSample }">
-        サンプルの中から画像を選んでください。選んだ画像に似た画像や、それを含む資料を検索できます。
+        {{ t('サンプルの中から画像を選んでください。選んだ画像に似た画像や、それを含む資料を検索できます。', 'Choose an image from the samples. You can search for similar images and materials containing them.') }}
       </p>
       <div v-if="selectedSample" class="query-illustration">
         <IllustrationResultCard :illustration="selectedSample" compact />
@@ -296,20 +297,20 @@ watch(
         </button>
       </div>
       <div class="reload-row">
-        <button class="button" type="button" @click="reloadSample('picture')">写真を探す</button>
-        <button class="button" type="button" @click="reloadSample('graphic')">絵を探す</button>
+        <button class="button" type="button" @click="reloadSample('picture')">{{ t('写真を探す', 'Find photos') }}</button>
+        <button class="button" type="button" @click="reloadSample('graphic')">{{ t('絵を探す', 'Find illustrations') }}</button>
       </div>
     </section>
 
     <section v-else-if="activeTab === 'metadata'" class="panel-block">
-      <p class="guide">検索したいキーワードを入力してください。表示された資料の画像から検索できます。</p>
+      <p class="guide">{{ t('検索したいキーワードを入力してください。表示された資料の画像から検索できます。', 'Enter keywords to search. You can then search from the images shown in the materials.') }}</p>
       <form class="search-form" @submit.prevent="searchByKeyword()">
         <div class="search-input-row">
           <input v-model="keyword" class="input" type="text" autocomplete="off">
-          <button class="button" type="submit">検索</button>
+          <button class="button" type="submit">{{ t('検索', 'Search') }}</button>
         </div>
         <div class="preset-row">
-          <span>キーワード例</span>
+          <span>{{ t('キーワード例', 'Keyword examples') }}</span>
           <button type="button" @click="searchByKeyword(['楽面'])">楽面</button>
           <button type="button" @click="searchByKeyword(['友禅'])">友禅</button>
           <button type="button" @click="searchByKeyword(['造船'])">造船</button>
@@ -323,24 +324,24 @@ watch(
       <div v-if="!localImage" class="upload-area">
         <label class="upload-drop">
           <input type="file" accept="image/*" @change="selectFile">
-          <span>ここに画像をドロップするか、クリックして選択してください</span>
+          <span>{{ t('ここに画像をドロップするか、クリックして選択してください', 'Drop an image here or click to select one.') }}</span>
         </label>
       </div>
 
       <div v-else class="local-preview-block">
         <img :src="localImage" alt="" class="local-preview-image">
         <div class="local-actions">
-          <button class="button" type="button" @click="analyzeLocalImage">解析して検索</button>
+          <button class="button" type="button" @click="analyzeLocalImage">{{ t('解析して検索', 'Analyze and search') }}</button>
           <button class="button is-secondary" type="button" @click="clearLocalImage">
             <span class="mdi mdi-delete" aria-hidden="true"></span>
           </button>
         </div>
         <div class="local-actions">
-          <button class="button" type="button" @click="openCropModal">画像の一部から検索する</button>
+          <button class="button" type="button" @click="openCropModal">{{ t('画像の一部から検索する', 'Search from part of the image') }}</button>
         </div>
       </div>
 
-      <div v-if="localLoading" class="muted">検索中です。しばらくお待ちください。</div>
+      <div v-if="localLoading" class="muted">{{ t('検索中です。しばらくお待ちください。', 'Searching. Please wait a moment.') }}</div>
       <div v-else-if="localError" class="error-text">{{ localError }}</div>
 
       <div v-if="localResults?.list?.length" class="inline-results">
@@ -357,14 +358,14 @@ watch(
     </section>
 
     <section v-else-if="activeTab === 'url'" class="panel-block">
-      <p class="guide">検索したい画像の URL を入力してください。</p>
+      <p class="guide">{{ t('検索したい画像の URL を入力してください。', 'Enter the URL of the image you want to search.') }}</p>
       <form class="search-form" @submit.prevent="searchByUrl">
         <div class="search-input-row">
           <input v-model="targetUrl" class="input" type="url" autocomplete="off">
-          <button class="button" type="submit">検索</button>
+          <button class="button" type="submit">{{ t('検索', 'Search') }}</button>
         </div>
       </form>
-      <div v-if="urlLoading" class="muted">検索中です。しばらくお待ちください。</div>
+      <div v-if="urlLoading" class="muted">{{ t('検索中です。しばらくお待ちください。', 'Searching. Please wait a moment.') }}</div>
       <div v-else-if="urlError" class="error-text">{{ urlError }}</div>
       <div v-if="urlResults?.list?.length" class="inline-results">
         <IllustrationResultCard
@@ -378,11 +379,11 @@ watch(
     </section>
 
     <section v-else class="panel-block">
-      <p class="guide">単語や文章から、イメージに近い画像を検索します。</p>
+      <p class="guide">{{ t('単語や文章から、イメージに近い画像を検索します。', 'Search for images similar to a word or sentence.') }}</p>
       <form class="search-form" @submit.prevent="searchByWords">
         <div class="search-input-row">
           <input v-model="keyword2vec" class="input" type="text" autocomplete="off">
-          <button class="button" type="submit">検索</button>
+          <button class="button" type="submit">{{ t('検索', 'Search') }}</button>
         </div>
       </form>
     </section>

@@ -7,7 +7,8 @@ const route = useRoute();
 const router = useRouter();
 const migration = useRouteMigration('fulltextsearch');
 const { asStringArray, normalizeQuery } = useQueryParams();
-const { $notify } = useNuxtApp();
+const { $notify, $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const keyword = ref(asStringArray(route.query.keyword).join(' '));
 const title = ref(String(route.query['f-title'] || ''));
@@ -78,7 +79,7 @@ watch(
 const search = async () => {
   const keywords = keyword.value.split(/[\s\u3000]+/).filter(Boolean);
   if (keywords.join('').length < 2) {
-    $notify('2文字以上のキーワードを入力してください。', 'error');
+    $notify(t('2文字以上のキーワードを入力してください。', 'Please enter a keyword with at least 2 characters.'), 'error');
     return;
   }
 
@@ -104,9 +105,9 @@ const search = async () => {
   <main class="fulltext-search page-shell">
     <div class="heading-row">
       <div class="heading-main">
-        <h1>全文検索</h1>
+        <h1>{{ t('全文検索', 'Keyword search') }}</h1>
         <p class="guide" :class="{ 'is-hidden': keyword }">
-          2文字以上のキーワードを入れてください。目次と本文からキーワードを含む資料を検索します。
+          {{ t('2文字以上のキーワードを入れてください。目次と本文からキーワードを含む資料を検索します。', 'Please enter at least 2 characters. Search materials containing your keywords in the TOC and full text.') }}
         </p>
       </div>
       <MigrationStatus :status="migration.status" />
@@ -121,35 +122,35 @@ const search = async () => {
           autocomplete="off"
           @keyup.esc="keyword = ''"
         >
-        <button class="button search-button" type="submit">検索</button>
+        <button class="button search-button" type="submit">{{ t('検索', 'Search') }}</button>
       </div>
 
       <div class="option-row">
         <label>
           <input v-model="searchfield" type="checkbox">
-          本文のみを検索する
+          {{ t('本文のみを検索する', 'Search full text only') }}
         </label>
         <label>
           <input v-model="withoutImage" type="checkbox">
-          検索結果に図表を表示しない
+          {{ t('検索結果に図表を表示しない', 'Hide illustrations in results') }}
         </label>
       </div>
 
       <details class="advanced-box" :open="filterOpen">
-        <summary>詳細検索</summary>
+        <summary>{{ t('詳細検索', 'Advanced search') }}</summary>
         <div class="advanced-grid">
           <label class="field">
-            <span>タイトル</span>
+            <span>{{ t('タイトル', 'Title') }}</span>
             <input v-model="title" class="input" type="text">
           </label>
 
           <label class="field">
-            <span>著者</span>
+            <span>{{ t('著者', 'Author') }}</span>
             <input v-model="author" class="input" type="text">
           </label>
 
           <label class="field">
-            <span>出版年（範囲）</span>
+            <span>{{ t('出版年（範囲）', 'Published year (range)') }}</span>
             <div class="year-range">
               <input v-model="since" class="input" type="text" inputmode="numeric" placeholder="From">
               <span>~</span>
@@ -158,11 +159,11 @@ const search = async () => {
           </label>
 
           <label class="field">
-            <span>古典籍</span>
+            <span>{{ t('古典籍', 'Classical materials') }}</span>
             <select v-model="isClassic" class="select">
               <option value="">-</option>
-              <option value="true">古典籍のみ</option>
-              <option value="false">図書</option>
+              <option value="true">{{ t('古典籍のみ', 'Classical materials only') }}</option>
+              <option value="false">{{ t('図書', 'Books') }}</option>
             </select>
           </label>
         </div>
@@ -170,8 +171,8 @@ const search = async () => {
         <FulltextNdcFilter v-model="ndc" :ndc-data="ndcData" />
 
         <div class="advanced-actions">
-          <button class="button" type="submit">絞り込み検索</button>
-          <NuxtLink class="button is-secondary" to="/fulltext">条件をクリア</NuxtLink>
+          <button class="button" type="submit">{{ t('絞り込み検索', 'Filter search') }}</button>
+          <NuxtLink class="button is-secondary" to="/fulltext">{{ t('条件をクリア', 'Clear') }}</NuxtLink>
         </div>
       </details>
     </form>

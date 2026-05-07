@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Book, Illustration } from '~/types/domain';
 import { illustrationCropUrl } from '~/utils/illustration-image';
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const props = defineProps<{
   book: Book;
@@ -78,7 +80,7 @@ const changeIllustrationPage = (direction: 'prev' | 'next') => {
     <figure class="thumb-column">
       <NuxtLink class="thumb-frame" :to="detailLink" aria-label="資料詳細">
         <img v-if="thumbnailUrl" :src="thumbnailUrl" alt="" loading="lazy">
-        <span v-else class="empty-thumb">No image</span>
+        <span v-else class="empty-thumb">{{ t('画像なし', 'No image') }}</span>
       </NuxtLink>
     </figure>
 
@@ -96,7 +98,7 @@ const changeIllustrationPage = (direction: 'prev' | 'next') => {
       </div>
 
       <div v-if="showIllustrations && illustrations.length" class="illustrations">
-        <p class="illustration-label">この資料の中の図表</p>
+        <p class="illustration-label">{{ t('この資料の中の図表', 'Illustrations in this material') }}</p>
         <div class="illustration-carousel">
           <button
             v-if="showIllustrationCarousel"
