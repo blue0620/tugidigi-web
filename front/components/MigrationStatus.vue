@@ -5,7 +5,13 @@ const props = defineProps<{
   status: MigrationStatus;
 }>();
 
-const label = computed(() => (props.status === 'migrated' ? '移植済み' : '旧実装'));
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
+const label = computed(() => (
+  props.status === 'migrated'
+    ? t('移植済み', 'Migrated')
+    : t('旧実装', 'Legacy')
+));
 </script>
 
 <template>

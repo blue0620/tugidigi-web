@@ -152,9 +152,9 @@ const search = async () => {
           <label class="field">
             <span>{{ t('出版年（範囲）', 'Published year (range)') }}</span>
             <div class="year-range">
-              <input v-model="since" class="input" type="text" inputmode="numeric" placeholder="From">
+              <input v-model="since" class="input" type="text" inputmode="numeric" :placeholder="t('開始', 'From')">
               <span>~</span>
-              <input v-model="until" class="input" type="text" inputmode="numeric" placeholder="To">
+              <input v-model="until" class="input" type="text" inputmode="numeric" :placeholder="t('終了', 'To')">
             </div>
           </label>
 

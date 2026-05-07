@@ -10,6 +10,9 @@ const emit = defineEmits<{
   'update:modelValue': [value: string[]];
 }>();
 
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
+
 const openedPrimary = ref<string[]>([]);
 const openedSecondary = ref<string[]>([]);
 
@@ -19,9 +22,9 @@ const selectedTertiary = ref<string[]>([]);
 const syncing = ref(false);
 const applyingExternalModel = ref(false);
 
-const primaryLabel = (item: NdcData[number]) => `${item.key} ${item.titleEn}`;
-const secondaryLabel = (item: NdcData[number]['children'][number]) => `${item.key} ${item.titleEn}`;
-const tertiaryLabel = (item: NdcData[number]['children'][number]['children'][number]) => `${item.key} ${item.titleEn}`;
+const primaryLabel = (item: NdcData[number]) => `${item.key} ${t(item.title, item.titleEn)}`;
+const secondaryLabel = (item: NdcData[number]['children'][number]) => `${item.key} ${t(item.title, item.titleEn)}`;
+const tertiaryLabel = (item: NdcData[number]['children'][number]['children'][number]) => `${item.key} ${t(item.title, item.titleEn)}`;
 
 const parseModelValue = () => {
   selectedPrimary.value = [];

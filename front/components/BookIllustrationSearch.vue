@@ -7,6 +7,8 @@ const props = defineProps<{
 
 const router = useRouter();
 const { searchBookIllustrations } = useSearchApi();
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const result = ref<Illustration[] | null>(null);
 const facets = ref<ItemFacet[]>([]);
@@ -83,9 +85,9 @@ const updateFacet = async (field: string, values: string[] | undefined) => {
 
 <template>
   <section class="book-subpanel">
-    <p v-if="loading" class="muted">検索しています...</p>
+    <p v-if="loading" class="muted">{{ t('検索しています...', 'Searching...') }}</p>
     <template v-else-if="result">
-      <p class="muted">{{ total }} 枚の図表が抽出されています</p>
+      <p class="muted">{{ t(`${total} 枚の図表が抽出されています`, `${total} illustrations are extracted.`) }}</p>
       <div v-if="facets.length" class="facet-strip">
         <SearchFacetPanel
           v-for="facet in facets"
@@ -103,8 +105,8 @@ const updateFacet = async (field: string, values: string[] | undefined) => {
             <IllustrationResultCard :illustration="item" />
           </div>
           <div class="illust-actions">
-            <button class="button is-secondary" type="button" @click="openIllustrationSearch(item)">画像検索</button>
-            <span class="muted">{{ item.page }} コマ</span>
+            <button class="button is-secondary" type="button" @click="openIllustrationSearch(item)">{{ t('画像検索', 'Image search') }}</button>
+            <span class="muted">{{ item.page }} {{ t('コマ', 'page') }}</span>
           </div>
         </article>
       </div>

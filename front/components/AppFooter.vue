@@ -1,11 +1,12 @@
 <script setup lang="ts">
 const appConfig = useAppConfig();
 const { $appRuntime } = useNuxtApp();
+const serviceName = computed(() => $appRuntime.t(appConfig.service.nameJa, appConfig.service.name));
 </script>
 
 <template>
   <footer class="app-footer">
-    <strong>{{ appConfig.service.name }}</strong>
+    <strong>{{ serviceName }}</strong>
     <button type="button" @click="$appRuntime.setLang($appRuntime.lang.value === 'ja' ? 'en' : 'ja')">
       {{ $appRuntime.lang.value === 'ja' ? 'English' : '日本語' }}
     </button>

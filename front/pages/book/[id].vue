@@ -6,6 +6,8 @@ definePageMeta({ name: 'book' });
 const route = useRoute();
 const router = useRouter();
 const migration = useRouteMigration('book');
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const id = computed(() => String(route.params.id || ''));
 const activeTab = ref<'bib' | 'toc' | 'text' | 'illustrations'>('bib');
@@ -74,7 +76,7 @@ const loadBook = async () => {
   try {
     book.value = await useApiFetch<Book>(`/book/${id.value}`);
   } catch (error) {
-    errorMessage.value = '書誌情報を読み込めませんでした。';
+    errorMessage.value = t('書誌情報を読み込めませんでした。', 'Could not load bibliographic information.');
     console.error(error);
   } finally {
     loading.value = false;
@@ -113,45 +115,45 @@ watch(
           </div>
         </template>
         <div v-else class="meta-header">
-          <h1 class="book-title">資料 {{ id }}</h1>
+          <h1 class="book-title">{{ t('資料', 'Material') }} {{ id }}</h1>
           <MigrationStatus :status="migration.status" />
         </div>
 
-        <div v-if="loading" class="meta-status muted">書誌情報を読み込み中...</div>
+        <div v-if="loading" class="meta-status muted">{{ t('書誌情報を読み込み中...', 'Loading bibliographic information...') }}</div>
         <div v-else-if="errorMessage" class="meta-status muted">{{ errorMessage }}</div>
 
         <div class="tab-row">
-          <button class="button is-secondary" :class="{ 'is-active': activeTab === 'bib' }" type="button" @click="activeTab = 'bib'">書誌</button>
-          <button class="button is-secondary" :class="{ 'is-active': activeTab === 'toc' }" type="button" @click="activeTab = 'toc'">目次</button>
-          <button class="button is-secondary" :class="{ 'is-active': activeTab === 'text' }" type="button" @click="activeTab = 'text'">本文</button>
-          <button class="button is-secondary" :class="{ 'is-active': activeTab === 'illustrations' }" type="button" @click="activeTab = 'illustrations'">図表</button>
+          <button class="button is-secondary" :class="{ 'is-active': activeTab === 'bib' }" type="button" @click="activeTab = 'bib'">{{ t('書誌', 'Bibliography') }}</button>
+          <button class="button is-secondary" :class="{ 'is-active': activeTab === 'toc' }" type="button" @click="activeTab = 'toc'">{{ t('目次', 'TOC') }}</button>
+          <button class="button is-secondary" :class="{ 'is-active': activeTab === 'text' }" type="button" @click="activeTab = 'text'">{{ t('本文', 'Full text') }}</button>
+          <button class="button is-secondary" :class="{ 'is-active': activeTab === 'illustrations' }" type="button" @click="activeTab = 'illustrations'">{{ t('図表', 'Illustrations') }}</button>
         </div>
 
         <div class="tab-panel">
           <div v-if="activeTab === 'bib'" class="tab-content">
             <dl class="meta-list">
               <div>
-                <dt>責任表示</dt>
+                <dt>{{ t('責任表示', 'Responsibility') }}</dt>
                 <dd>{{ book?.responsibility || '-' }}</dd>
               </div>
               <div>
-                <dt>出版年</dt>
+                <dt>{{ t('出版年', 'Published year') }}</dt>
                 <dd>{{ book?.publishyear || '-' }}</dd>
               </div>
               <div>
-                <dt>出版者</dt>
+                <dt>{{ t('出版者', 'Publisher') }}</dt>
                 <dd>{{ book?.publisher || '-' }}</dd>
               </div>
             </dl>
             <div class="dl-link">
-              <a :href="`http://dl.ndl.go.jp/info:ndljp/pid/${id}`">デジタルコレクションで見る</a>
+              <a :href="`http://dl.ndl.go.jp/info:ndljp/pid/${id}`">{{ t('デジタルコレクションで見る', 'View in Digital Collections') }}</a>
             </div>
           </div>
 
           <div v-else-if="activeTab === 'toc'" class="tab-content">
-            <button class="button is-secondary toc-toggle" type="button" @click="isMetadata = !isMetadata">目次を切り替える</button>
+            <button class="button is-secondary toc-toggle" type="button" @click="isMetadata = !isMetadata">{{ t('目次を切り替える', 'Switch TOC') }}</button>
             <p class="muted">
-              {{ isMetadata ? 'デジタルコレクションの目次です' : '自動解析された目次です（試験中）' }}
+              {{ isMetadata ? t('デジタルコレクションの目次です', 'This is the Digital Collections TOC.') : t('自動解析された目次です（試験中）', 'This is an automatically analyzed TOC (experimental).') }}
             </p>
             <table v-if="isMetadata ? index : autoTOCindex" class="toc-table">
               <tbody>
@@ -162,13 +164,13 @@ watch(
                       v-if="item?.pg"
                       :to="{ name: 'book', params: { id }, query: { page: item.pg, keyword: keywords } }"
                     >
-                      {{ item.pg }}コマ
+                      {{ item.pg }}{{ t('コマ', ' page') }}
                     </NuxtLink>
                   </td>
                 </tr>
               </tbody>
             </table>
-            <p v-else class="muted">{{ isMetadata ? '目次はありません。' : '自動解析目次はありません。' }}</p>
+            <p v-else class="muted">{{ isMetadata ? t('目次はありません。', 'No TOC is available.') : t('自動解析目次はありません。', 'No automatically analyzed TOC is available.') }}</p>
           </div>
 
           <BookPageSearch v-else-if="activeTab === 'text' && book" :book="book" :keywords="keywords" />

@@ -75,6 +75,8 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const runtimeConfig = useRuntimeConfig();
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const manifest = ref<IiifManifest | null>(null);
 const loading = ref(false);
@@ -162,53 +164,57 @@ const colors = `0 1 0 0 0
                     0 1 0 0 0
                     0 1 0 1 0`;
 const labels = {
-  directionNone: '\u30da\u30fc\u30b8\u65b9\u5411\uff08\u60c5\u5831\u306a\u3057\uff09',
-  directionEstimated: '\u30da\u30fc\u30b8\u65b9\u5411\uff08\u81ea\u52d5\u63a8\u5b9a\uff09',
-  direction: '\u30da\u30fc\u30b8\u65b9\u5411',
-  openRight: '\u53f3\u958b\u304d',
-  openLeft: '\u5de6\u958b\u304d',
-  copyDone: '\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f',
-  copyFailed: '\u30b3\u30d4\u30fc\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f',
-  copyExtractFailed: '\u6587\u5b57\u3092\u62bd\u51fa\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f',
-  selectTableArea: '\u30c6\u30fc\u30d6\u30eb\u9818\u57df\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044\u3002',
-  extracting: '\u62bd\u51fa\u4e2d...',
-  tableFailed: '\u8868\u62bd\u51fa\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002',
-  manifestFailed: 'IIIF manifest \u3092\u8aad\u307f\u8fbc\u3081\u307e\u305b\u3093\u3067\u3057\u305f\u3002',
-  loadingManifest: 'IIIF manifest \u3092\u8aad\u307f\u8fbc\u307f\u4e2d...',
-  zoomOut: '\u7e2e\u5c0f',
-  fitBounds: '\u8868\u793a\u9818\u57df\u306b\u5408\u308f\u305b\u308b',
-  zoomIn: '\u62e1\u5927',
-  fullscreen: '\u5168\u753b\u9762\u8868\u793a',
-  exitFullscreen: '\u5168\u753b\u9762\u8868\u793a\u3092\u9589\u3058\u308b',
-  textDisplay: '\u30c6\u30ad\u30b9\u30c8\u8868\u793a',
-  textCopy: '\u30c6\u30ad\u30b9\u30c8\u30b3\u30d4\u30fc',
-  tableExtract: '\u8868\u62bd\u51fa',
-  tag: '\u30bf\u30b0',
-  attachTag: '\u30bf\u30b0\u3092\u4ed8\u4e0e\u3059\u308b',
-  attach: '\u4ed8\u4e0e',
-  tagPermission:
-    '\u30bf\u30b0\u60c5\u5831\u306fWeb\u30d6\u30e9\u30a6\u30b6\u306eIndexedDB\u306b\u4fdd\u5b58\u3055\u308c\u307e\u3059\u3002\u5171\u6709PC\u3067\u306f\u3001\u4ed6\u306e\u5229\u7528\u8005\u306b\u3082\u8868\u793a\u3055\u308c\u307e\u3059\u306e\u3067\u3001\u305d\u306e\u70b9\u3092\u3054\u7406\u89e3\u306e\u3046\u3048\u4f7f\u7528\u3057\u3066\u304f\u3060\u3055\u3044\u3002',
-  noResults: 'No results found',
-  rubySize: '\u30eb\u30d3\u30b5\u30a4\u30ba',
-  previous: '\u524d\u3078',
-  next: '\u6b21\u3078',
-  swapDirection: '\u5165\u308c\u66ff\u3048\u308b',
-  divideOn: '\u5206\u5272\u8868\u793a',
-  divideOff: '\u5206\u5272\u89e3\u9664',
-  currentPageImage: '\u3053\u306e\u30da\u30fc\u30b8\u306e\u753b\u50cf',
-  readability: '\u8aad\u307f\u3084\u3059\u304f\u3059\u308b',
-  adjust: '\u8abf\u6574\u3059\u308b',
-  fulltextDownload: '\u3053\u306e\u8cc7\u6599\u306e\u5168\u6587\u30c6\u30ad\u30b9\u30c8\u30c7\u30fc\u30bf',
-  imageDownload: '\u3053\u306e\u8cc7\u6599\u306e\u753b\u50cf\u30c7\u30fc\u30bf',
-  imageDownloadTitle: '\u753b\u50cf\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9',
-  imageDownloadDescription: '\u3053\u306e\u30da\u30fc\u30b8\u306e\u8868\u793a\u4e2d\u753b\u50cf\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u3057\u307e\u3059\u3002',
-  download: '\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9',
-  close: '\u9589\u3058\u308b',
-  copy: '\u30b3\u30d4\u30fc',
-  rangeSelect: '\u7bc4\u56f2\u9078\u629e',
-  insertSpace: '\u6587\u5b57\u9593\u306b\u7a7a\u767d\u3092\u5165\u308c\u308b',
-  ignoreRuby: '\u30eb\u30d3\u3092\u7121\u8996\u3059\u308b',
-  spreadSort: '\u898b\u958b\u304d\u3067\u4e26\u3079\u66ff\u3048\u308b',
+  get directionNone() { return t('ページ方向（情報なし）', 'Page direction (no information)'); },
+  get directionEstimated() { return t('ページ方向（自動推定）', 'Page direction (auto estimated)'); },
+  get direction() { return t('ページ方向', 'Page direction'); },
+  get openRight() { return t('右開き', 'right-opening'); },
+  get openLeft() { return t('左開き', 'left-opening'); },
+  get copyDone() { return t('コピーしました', 'Copied'); },
+  get copyFailed() { return t('コピーできませんでした', 'Could not copy'); },
+  get copyExtractFailed() { return t('文字を抽出できませんでした', 'Could not extract text'); },
+  get selectTableArea() { return t('テーブル領域を選択してください。', 'Please select a table area.'); },
+  get extracting() { return t('抽出中...', 'Extracting...'); },
+  get tableFailed() { return t('表抽出に失敗しました。', 'Table extraction failed.'); },
+  get manifestFailed() { return t('IIIF manifest を読み込めませんでした。', 'Could not load the IIIF manifest.'); },
+  get loadingManifest() { return t('IIIF manifest を読み込み中...', 'Loading IIIF manifest...'); },
+  get zoomOut() { return t('縮小', 'Zoom out'); },
+  get fitBounds() { return t('表示領域に合わせる', 'Fit to view'); },
+  get zoomIn() { return t('拡大', 'Zoom in'); },
+  get fullscreen() { return t('全画面表示', 'Fullscreen'); },
+  get exitFullscreen() { return t('全画面表示を閉じる', 'Exit fullscreen'); },
+  get textDisplay() { return t('テキスト表示', 'Show text'); },
+  get textCopy() { return t('テキストコピー', 'Copy text'); },
+  get tableExtract() { return t('表抽出', 'Extract table'); },
+  get tag() { return t('タグ', 'Tag'); },
+  get attachTag() { return t('タグを付与する', 'Attach tag'); },
+  get attach() { return t('付与', 'Attach'); },
+  get tagPermission() {
+    return t(
+      'タグ情報はWebブラウザのIndexedDBに保存されます。共有PCでは、他の利用者にも表示されますので、その点をご理解のうえ使用してください。',
+      'Tag information is stored in this browser IndexedDB. On a shared PC, it may also be visible to other users. Please use it with that understanding.',
+    );
+  },
+  get noResults() { return t('No results found', 'No results found'); },
+  get rubySize() { return t('ルビサイズ', 'Ruby size'); },
+  get previous() { return t('前へ', 'Previous'); },
+  get next() { return t('次へ', 'Next'); },
+  get swapDirection() { return t('入れ替える', 'Swap'); },
+  get divideOn() { return t('分割表示', 'Split view'); },
+  get divideOff() { return t('分割解除', 'Exit split view'); },
+  get currentPageImage() { return t('このページの画像', 'Image on this page'); },
+  get readability() { return t('読みやすくする', 'Improve readability'); },
+  get adjust() { return t('調整する', 'Adjust'); },
+  get fulltextDownload() { return t('この資料の全文テキストデータ', 'Full text data for this material'); },
+  get imageDownload() { return t('この資料の画像データ', 'Image data for this material'); },
+  get imageDownloadTitle() { return t('画像ダウンロード', 'Image download'); },
+  get imageDownloadDescription() { return t('このページの表示中画像をダウンロードします。', 'Download the currently displayed image on this page.'); },
+  get download() { return t('ダウンロード', 'Download'); },
+  get close() { return t('閉じる', 'Close'); },
+  get copy() { return t('コピー', 'Copy'); },
+  get rangeSelect() { return t('範囲選択', 'Select area'); },
+  get insertSpace() { return t('文字間に空白を入れる', 'Insert spaces between characters'); },
+  get ignoreRuby() { return t('ルビを無視する', 'Ignore ruby text'); },
+  get spreadSort() { return t('見開きで並べ替える', 'Reorder by spread'); },
 } as const;
 
 const directionLabel = computed(() => {
@@ -1257,7 +1263,7 @@ onBeforeUnmount(() => {
               target="_blank"
               rel="noreferrer"
             >
-              {{ item.page }} page
+              {{ item.page }} {{ t('コマ', 'page') }}
             </a>
           </div>
         </details>
@@ -1276,7 +1282,7 @@ onBeforeUnmount(() => {
     <div v-if="isTaggingModalActive" class="modal-backdrop" @click.self="isTaggingModalActive = false">
       <div class="modal-card tag-modal">
         <h3>{{ labels.tag }}</h3>
-        <p v-if="book">{{ book.title }} にタグを付与します。</p>
+        <p v-if="book">{{ t(`${book.title} にタグを付与します。`, `Attach tags to ${book.title}.`) }}</p>
         <div class="tag-add-row">
           <input
             v-model="tagAddInput"

@@ -3,6 +3,9 @@ const props = defineProps<{
   counts: Record<string, number>;
 }>();
 
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
+
 const entries = computed(() => {
   const rows = Object.entries(props.counts || {})
     .map(([year, count]) => ({ year, count }))
@@ -17,7 +20,7 @@ const entries = computed(() => {
 
 <template>
   <div class="ngram-viewer">
-    <p v-if="!entries.length" class="muted">出版年分布はありません。</p>
+    <p v-if="!entries.length" class="muted">{{ t('出版年分布はありません。', 'No publication year distribution is available.') }}</p>
     <ul v-else class="ngram-chart">
       <li v-for="entry in entries" :key="entry.year" class="ngram-row">
         <span class="year">{{ entry.year }}</span>

@@ -204,7 +204,10 @@ const importTag = async () => {
   const bookIdValidation = /^\d{6,}$/;
   const invalidBookIds = bookIds.filter((id) => !bookIdValidation.test(id));
   if (invalidBookIds.length) {
-    window.alert(`${invalidBookIds.length}件の不正なデータが存在します\n${invalidBookIds.join(', ')}`);
+    window.alert(t(
+      `${invalidBookIds.length}件の不正なデータが存在します\n${invalidBookIds.join(', ')}`,
+      `${invalidBookIds.length} invalid entries exist\n${invalidBookIds.join(', ')}`,
+    ));
     return;
   }
 
@@ -214,7 +217,9 @@ const importTag = async () => {
     bookIds,
   }).then(() => true).catch(() => false);
 
-  window.alert(ok ? 'タグのインポートに成功しました' : 'タグのインポートに失敗しました');
+  window.alert(ok
+    ? t('タグのインポートに成功しました', 'Imported the tag successfully.')
+    : t('タグのインポートに失敗しました', 'Failed to import the tag.'));
   if (!ok) return;
 
   dataToImport.value = '';
@@ -257,7 +262,7 @@ watch(
       </div>
 
       <form class="text-search-form" @submit.prevent="submitKeywordSearch">
-        <label class="field-label">選択したタグの資料を全文検索する（スニペット表示には対応していません）</label>
+        <label class="field-label">{{ t('選択したタグの資料を全文検索する（スニペット表示には対応していません）', 'Search full text in materials with the selected tag (snippet display is not supported).') }}</label>
         <div class="search-row">
           <input
             v-model="keywordBuffer"
@@ -314,7 +319,7 @@ watch(
       <div v-if="isExportModalActive" class="modal-shell" @click.self="isExportModalActive = false">
         <div class="modal-card">
           <h3>{{ t('CSV 形式でエクスポート', 'Export as CSV') }}</h3>
-          <p>下記のデータをコピーすることで、インポートしたいブラウザのインポートボタンからこのタグに紐づいた資料の一覧をインポート可能です。</p>
+          <p>{{ t('下記のデータをコピーすることで、インポートしたいブラウザのインポートボタンからこのタグに紐づいた資料の一覧をインポート可能です。', 'Copy the data below, then use the import button in another browser to import the list of materials linked to this tag.') }}</p>
           <p class="csv-box">{{ exportCSV }}</p>
           <div class="modal-actions">
             <button class="menu-button" type="button" @click="isExportModalActive = false">{{ t('閉じる', 'Close') }}</button>

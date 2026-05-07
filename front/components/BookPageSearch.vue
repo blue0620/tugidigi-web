@@ -9,6 +9,8 @@ const props = defineProps<{
 const route = useRoute();
 const router = useRouter();
 const { searchPages } = useSearchApi();
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const keyword = ref((props.keywords || []).join(' '));
 const result = ref<Page[] | null>(null);
@@ -80,18 +82,18 @@ const changePage = async (nextFrom: number) => {
   <section class="book-subpanel">
     <form class="inline-search" @submit.prevent="submit">
       <input v-model="keyword" class="input" type="text">
-      <button class="button" type="submit">検索</button>
+      <button class="button" type="submit">{{ t('検索', 'Search') }}</button>
     </form>
 
-    <p v-if="loading" class="muted">検索しています...</p>
+    <p v-if="loading" class="muted">{{ t('検索しています...', 'Searching...') }}</p>
     <template v-else-if="result">
-      <p class="muted">{{ total }} 件見つかりました。</p>
+      <p class="muted">{{ t(`${total} 件見つかりました。`, `${total} results found.`) }}</p>
       <SearchPagination v-if="total > size" :total="total" :from="from" :size="size" @change="changePage" />
       <div class="page-results">
         <article v-for="item in result" :key="item.id" class="page-result">
           <div class="page-number">
             <NuxtLink :to="{ name: 'book', params: { id: book.id }, query: { keyword: keywords2, page: item.page } }">
-              {{ item.page }} コマ
+              {{ item.page }} {{ t('コマ', 'page') }}
             </NuxtLink>
           </div>
           <div class="page-highlights">

@@ -19,6 +19,9 @@ const emit = defineEmits<{
   close: [rect: Rect | null];
 }>();
 
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
+
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const imageRef = ref<HTMLImageElement | null>(null);
 const size = ref(100);
@@ -170,7 +173,7 @@ watch(size, draw);
         <input v-model="size" type="range" min="1" max="200">
         <div class="actions">
           <button class="button is-primary" type="button" @click="save">OK</button>
-          <button class="button is-secondary" type="button" @click="cancel">キャンセル</button>
+          <button class="button is-secondary" type="button" @click="cancel">{{ t('キャンセル', 'Cancel') }}</button>
         </div>
       </div>
       <canvas ref="canvasRef" class="drawing"></canvas>
