@@ -8,6 +8,8 @@ import {
   retrieveObjectByTagName,
 } from '~/utils/mypage-indexeddb';
 import { tryLocalStorageAvailable } from '~/utils/mypage-storage';
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const route = useRoute();
 const router = useRouter();
@@ -155,7 +157,7 @@ const submitKeywordSearch = async () => {
 };
 
 const changeCurrentTagName = async () => {
-  const newTagName = window.prompt('新しいタグ名を入力してください', currentTagName.value);
+  const newTagName = window.prompt(t('新しいタグ名を入力してください', 'Enter a new tag name'), currentTagName.value);
   if (!newTagName) return;
 
   const renamed = await renameTagName(currentTagName.value, newTagName);
@@ -194,7 +196,7 @@ const exportCurrentTag = async () => {
 
 const importTag = async () => {
   if (!dataToImport.value || !tagNameToImport.value) {
-    window.alert('タグ名とタグデータは必須です。');
+    window.alert(t('タグ名とタグデータは必須です。', 'Tag name and tag data are required.'));
     return;
   }
 
@@ -241,16 +243,16 @@ watch(
 <template>
   <div class="tag-content">
     <div v-if="!isLocalStorageAvailable" class="search-result-body">
-      <p>このブラウザではタグ付け機能が利用できません。Localstorage機能を有効にしてください</p>
+      <p>{{ t('このブラウザではタグ付け機能が利用できません。Localstorage機能を有効にしてください', 'Tagging is not available in this browser. Please enable localStorage.') }}</p>
     </div>
     <template v-else>
       <div class="management-block">
-        <label class="field-label">タグを管理する</label>
+        <label class="field-label">{{ t('タグを管理する', 'Manage tags') }}</label>
         <div class="tag-menu">
-          <button class="menu-button success" type="button" @click="changeCurrentTagName">選択中のタグの名前を変更する</button>
-          <button class="menu-button danger" type="button" @click="deleteCurrentTag">選択中のタグを削除する</button>
-          <button class="menu-button primary" type="button" @click="exportCurrentTag">エクスポートする</button>
-          <button class="menu-button" type="button" @click="isImportModalActive = true">インポートする</button>
+          <button class="menu-button success" type="button" @click="changeCurrentTagName">{{ t('選択中のタグの名前を変更する', 'Rename selected tag') }}</button>
+          <button class="menu-button danger" type="button" @click="deleteCurrentTag">{{ t('選択中のタグを削除する', 'Delete selected tag') }}</button>
+          <button class="menu-button primary" type="button" @click="exportCurrentTag">{{ t('エクスポートする', 'Export') }}</button>
+          <button class="menu-button" type="button" @click="isImportModalActive = true">{{ t('インポートする', 'Import') }}</button>
         </div>
       </div>
 
@@ -261,7 +263,7 @@ watch(
             v-model="keywordBuffer"
             class="search-input"
             type="text"
-            placeholder="複数語句は空白区切りで入力してください"
+            :placeholder="t('複数語句は空白区切りで入力してください', 'Separate multiple keywords with spaces')"
           >
           <button class="search-button" type="submit">
             <span class="mdi mdi-magnify" aria-hidden="true"></span>
@@ -283,13 +285,13 @@ watch(
       </div>
 
       <div v-if="!taggedBookIds.length" class="search-result-body">
-        <p><NuxtLink to="/fulltext">こちらのページ</NuxtLink>から資料を検索できます</p>
+        <p><NuxtLink to="/fulltext">{{ t('こちらのページ', 'this page') }}</NuxtLink>{{ t('から資料を検索できます', ' to search for materials') }}</p>
       </div>
       <div v-else-if="!loading && !sortedBookList.length" class="search-result-body">
-        <p>検索する資料がありませんでした</p>
+        <p>{{ t('検索する資料がありませんでした', 'No materials were found to search.') }}</p>
       </div>
       <div v-else class="search-result-body">
-        <p v-if="loading" class="status-text">読み込み中...</p>
+        <p v-if="loading" class="status-text">{{ t('読み込み中...', 'Loading...') }}</p>
         <div v-else class="book-list">
           <BookResultCard
             v-for="book in sortedBookList"
@@ -311,29 +313,29 @@ watch(
 
       <div v-if="isExportModalActive" class="modal-shell" @click.self="isExportModalActive = false">
         <div class="modal-card">
-          <h3>CSV 形式でエクスポート</h3>
+          <h3>{{ t('CSV 形式でエクスポート', 'Export as CSV') }}</h3>
           <p>下記のデータをコピーすることで、インポートしたいブラウザのインポートボタンからこのタグに紐づいた資料の一覧をインポート可能です。</p>
           <p class="csv-box">{{ exportCSV }}</p>
           <div class="modal-actions">
-            <button class="menu-button" type="button" @click="isExportModalActive = false">閉じる</button>
+            <button class="menu-button" type="button" @click="isExportModalActive = false">{{ t('閉じる', 'Close') }}</button>
           </div>
         </div>
       </div>
 
       <div v-if="isImportModalActive" class="modal-shell" @click.self="isImportModalActive = false">
         <div class="modal-card">
-          <h3>CSV 形式でインポート</h3>
+          <h3>{{ t('CSV 形式でインポート', 'Import as CSV') }}</h3>
           <label class="modal-label">
-            タグ名
-            <input v-model="tagNameToImport" class="search-input" type="text" placeholder="お好きに入れて" >
+            {{ t('タグ名', 'Tag name') }}
+            <input v-model="tagNameToImport" class="search-input" type="text" :placeholder="t('お好きに入れて', 'Enter any name')" >
           </label>
           <label class="modal-label">
-            タグデータ（CSV形式）
+            {{ t('タグデータ（CSV形式）', 'Tag data (CSV)') }}
             <textarea v-model="dataToImport" class="search-input textarea" placeholder="969145,969142,1879454,969144"></textarea>
           </label>
           <div class="modal-actions">
-            <button class="menu-button primary" type="button" @click="importTag">インポート</button>
-            <button class="menu-button" type="button" @click="isImportModalActive = false">閉じる</button>
+            <button class="menu-button primary" type="button" @click="importTag">{{ t('インポート', 'Import') }}</button>
+            <button class="menu-button" type="button" @click="isImportModalActive = false">{{ t('閉じる', 'Close') }}</button>
           </div>
         </div>
       </div>

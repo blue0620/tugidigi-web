@@ -1,4 +1,7 @@
 <script setup lang="ts">
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
+
 const props = defineProps<{
   total: number;
   from: number;
@@ -24,10 +27,10 @@ const next = () => {
 </script>
 
 <template>
-  <nav class="search-pagination" aria-label="Search result pages">
-    <button class="button is-secondary" type="button" :disabled="!canGoPrevious" @click="previous">前へ</button>
+  <nav class="search-pagination" :aria-label="t('検索結果ページ', 'Search result pages')">
+    <button class="button is-secondary" type="button" :disabled="!canGoPrevious" @click="previous">{{ t('前へ', 'Previous') }}</button>
     <span>{{ currentPage }} / {{ pageCount }}</span>
-    <button class="button is-secondary" type="button" :disabled="!canGoNext" @click="next">次へ</button>
+    <button class="button is-secondary" type="button" :disabled="!canGoNext" @click="next">{{ t('次へ', 'Next') }}</button>
   </nav>
 </template>
 

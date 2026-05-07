@@ -1,4 +1,7 @@
 <script setup lang="ts">
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
+
 const props = defineProps<{
   size: number;
   sort?: string;
@@ -31,7 +34,7 @@ const apply = () => {
 <template>
   <div class="search-controls">
     <label class="control-label">
-      <span>表示件数</span>
+      <span>{{ t('表示件数', 'Results per page') }}</span>
       <select v-model.number="localSize" class="select" @change="apply">
         <option :value="10">10</option>
         <option :value="20">20</option>
@@ -40,11 +43,11 @@ const apply = () => {
     </label>
 
     <label v-if="showSort" class="control-label">
-      <span>ソート</span>
+      <span>{{ t('ソート', 'Sort') }}</span>
       <select v-model="localSort" class="select" @change="apply">
-        <option value="">一致度順</option>
-        <option value="publishyear:asc">出版年 昇順</option>
-        <option value="publishyear:desc">出版年 降順</option>
+        <option value="">{{ t('一致度順', 'Relevance') }}</option>
+        <option value="publishyear:asc">{{ t('出版年 昇順', 'Published year ascending') }}</option>
+        <option value="publishyear:desc">{{ t('出版年 降順', 'Published year descending') }}</option>
       </select>
     </label>
   </div>

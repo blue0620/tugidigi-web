@@ -13,7 +13,8 @@ import {
 
 definePageMeta({ name: 'mypage' });
 
-const { $notify } = useNuxtApp();
+const { $notify, $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const fulltextSortOrder = ref('');
 const isLocalStorageAvailable = ref(true);
@@ -30,7 +31,7 @@ const switchHistory = (toDisabled: boolean) => {
   const result = setIsViewedBookHistoryDisabled(toDisabled);
   viewedBookHistoryDisabled.value = toDisabled;
   if (result) {
-    $notify('閲覧履歴設定を保存しました。', 'success');
+    $notify(t('閲覧履歴設定を保存しました。', 'Saved viewing history setting.'), 'success');
   }
 };
 
@@ -38,7 +39,7 @@ const handleHistoryChange = (value: string) => {
   const toDisabled = value === 'true';
 
   if (toDisabled) {
-    const confirmed = window.confirm('無効にするとこれまで履歴がすべてリセットされます。');
+    const confirmed = window.confirm(t('無効にするとこれまで履歴がすべてリセットされます。', 'Disabling this will reset your viewing history.'));
     if (!confirmed) {
       historyValue.value = 'false';
       return;
@@ -49,7 +50,7 @@ const handleHistoryChange = (value: string) => {
 
   if (!checkHistoryPermission()) {
     const confirmed = window.confirm(
-      '閲覧履歴はWebブラウザのローカルストレージに保存されます。共有PCでは、他の利用者にも履歴が表示されますので、その点をご理解のうえ使用してください。',
+      t('閲覧履歴はWebブラウザのローカルストレージに保存されます。共有PCでは、他の利用者にも履歴が表示されますので、その点をご理解のうえ使用してください。', 'Viewing history is stored in your web browser local storage. On a shared PC, it may also be visible to other users. Please use it with that understanding.'),
     );
     if (!confirmed) {
       historyValue.value = 'true';
@@ -79,42 +80,42 @@ onMounted(() => {
     <div class="container">
       <section class="hero">
         <div class="hero-body">
-          <h1>マイページ</h1>
-          <p>設定値や履歴はすべてブラウザに保存されます。</p>
+          <h1>{{ t('マイページ', 'My Page') }}</h1>
+          <p>{{ t('設定値や履歴はすべてブラウザに保存されます。', 'Settings and history are stored in your browser.') }}</p>
         </div>
       </section>
 
       <section class="section setting">
         <p v-if="!isLocalStorageAvailable" class="notice">
-          このブラウザでは個人設定が使用できません。Localstorage機能を有効にしてください
+          {{ t('このブラウザでは個人設定が使用できません。Localstorage機能を有効にしてください', 'Personal settings are not available in this browser. Please enable localStorage.') }}
         </p>
         <template v-else>
-          <h2>全文検索並び順の選び方</h2>
-          <p class="setting-copy">「全文から検索」したときのデフォルトのソート順を設定します。</p>
+          <h2>{{ t('全文検索並び順の選び方', 'Default full-text sort order') }}</h2>
+          <p class="setting-copy">{{ t('「全文から検索」したときのデフォルトのソート順を設定します。', 'Set the default sort order for keyword search.') }}</p>
           <div class="select-row">
             <select v-model="fulltextSortOrder" class="select">
-              <option value="">関連度順</option>
-              <option value="publishyear:asc">出版年昇順</option>
-              <option value="publishyear:desc">出版年降順</option>
+              <option value="">{{ t('関連度順', 'Relevance') }}</option>
+              <option value="publishyear:asc">{{ t('出版年昇順', 'Published year ascending') }}</option>
+              <option value="publishyear:desc">{{ t('出版年降順', 'Published year descending') }}</option>
             </select>
           </div>
         </template>
       </section>
 
       <section id="tagged-books" class="section tagged-book">
-        <h2>タグごとに一覧を表示</h2>
+        <h2>{{ t('タグごとに一覧を表示', 'Browse by tag') }}</h2>
         <TaggedBooksPanel />
       </section>
 
       <section id="viewed-book-history" class="section history">
-        <h2>閲覧履歴</h2>
-        <p class="setting-copy">閲覧順に最新100件を保存しています。</p>
+        <h2>{{ t('閲覧履歴', 'Viewing history') }}</h2>
+        <p class="setting-copy">{{ t('閲覧順に最新100件を保存しています。', 'The latest 100 viewed materials are stored in order.') }}</p>
         <div class="history-setting">
-          <label for="history-setting">閲覧履歴設定</label>
-          <p class="setting-note">無効にするとこれまで履歴がすべてリセットされます。</p>
+          <label for="history-setting">{{ t('閲覧履歴設定', 'Viewing history setting') }}</label>
+          <p class="setting-note">{{ t('無効にするとこれまで履歴がすべてリセットされます。', 'Disabling this will reset your viewing history.') }}</p>
           <select id="history-setting" v-model="historyValue" class="select" @change="handleHistoryChange(historyValue)">
-            <option value="false">有効</option>
-            <option value="true">無効</option>
+            <option value="false">{{ t('有効', 'Enabled') }}</option>
+            <option value="true">{{ t('無効', 'Disabled') }}</option>
           </select>
         </div>
         <HistoryPanel :key="historyValue" />

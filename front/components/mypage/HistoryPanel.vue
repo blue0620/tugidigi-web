@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Book, Illustration } from '~/types/domain';
 import { retreiveViewedBookHistory, tryLocalStorageAvailable } from '~/utils/mypage-storage';
+const { $appRuntime } = useNuxtApp();
+const t = (ja: string, en: string) => $appRuntime.t(ja, en);
 
 const route = useRoute();
 const router = useRouter();
@@ -128,20 +130,20 @@ watch(
 <template>
   <div class="history-content">
     <div v-if="!isLocalStorageAvailable" class="search-result-body">
-      <p>このブラウザでは閲覧履歴機能が利用できません。Localstorage機能を有効にしてください</p>
+      <p>{{ t('このブラウザでは閲覧履歴機能が利用できません。Localstorage機能を有効にしてください', 'Viewing history is not available in this browser. Please enable localStorage.') }}</p>
     </div>
     <div v-else-if="!viewedBookHistoryIds.length" class="search-result-body">
-      <p><NuxtLink to="/fulltext">こちらのページ</NuxtLink>から資料を検索できます</p>
+      <p><NuxtLink to="/fulltext">{{ t('こちらのページ', 'this page') }}</NuxtLink>{{ t('から資料を検索できます', ' to search for materials') }}</p>
     </div>
     <template v-else>
       <form class="text-search-form" @submit.prevent="submitKeywordSearch">
-        <label class="field-label">閲覧履歴の資料を全文検索する（スニペット表示には対応していません）</label>
+        <label class="field-label">{{ t('閲覧履歴の資料を全文検索する（スニペット表示には対応していません）', 'Search full text within viewing history (snippet display is not supported).') }}</label>
         <div class="search-row">
           <input
             v-model="keywordBuffer"
             class="search-input"
             type="text"
-            placeholder="複数語句は空白区切りで入力してください"
+            :placeholder="t('複数語句は空白区切りで入力してください', 'Separate multiple keywords with spaces')"
           >
           <button class="search-button" type="submit">
             <span class="mdi mdi-magnify" aria-hidden="true"></span>
@@ -150,7 +152,7 @@ watch(
       </form>
 
       <div class="search-result-body">
-        <p v-if="loading" class="status-text">読み込み中...</p>
+        <p v-if="loading" class="status-text">{{ t('読み込み中...', 'Loading...') }}</p>
         <div v-else class="book-list">
           <BookResultCard
             v-for="book in sortedBookList"
